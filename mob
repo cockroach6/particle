@@ -1,9 +1,10 @@
 #!/bin/bash
-clear
+
+BOX_DIR=/media/kali/box
 
 lazypush()
 {
-	test -e /media/kali/box/bin/box && cat /media/kali/box/bin/box > box/box 
+	test -e $BOX_DIR/bin/box && cat $BOX_DIR/bin/box > box/box 
 	git add .
 
 	printf "commit: "

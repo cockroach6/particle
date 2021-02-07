@@ -157,6 +157,7 @@ _datalinks()
 
 	# delete some dirs
 	rm -rf $HOME/.local
+	rm -rf $HOME/Downloads
 
 	for d in ${BOX_DIRS[@]}; do
 		DEST=${d#"$BOX_HOME/"}
@@ -272,7 +273,7 @@ elif [[ $1 == "help" ]]; then
 	usage
 elif [[ $1 == "version" ]]; then
 	echo "box (particle) $VERSION"
-	
+
 elif [[ $# -eq 0 ]]; then
 	usage
 else
