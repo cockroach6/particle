@@ -31,7 +31,5 @@ int wd_save(struct bucket *bucket);
 int wd_list(void);
 int wd_clean(void);
 int wd_help(void);
-
-
-
+int wd_version(void);
 #endif

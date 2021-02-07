@@ -32,14 +32,14 @@ char *wd_getdir(struct bucket *bucket, char *name) {
 int main(int argc, char **argv)
 {
 	int index, c;
-	int flags[] = { 0, 0, 0 };
+	int flags[] = { 0, 0, 0, 0};
 	char *(values[]) = { NULL, NULL };
 	char *dir;
 	struct bucket *bucket = wd_init();
 
 	opterr = 0;
 
-	while ((c = getopt (argc, argv, "a:clhr:")) != -1) {
+	while ((c = getopt (argc, argv, "a:clhvr:")) != -1) {
 		switch (c) {
 		case 'c':
 			flags[0] = 1;
@@ -47,8 +47,11 @@ int main(int argc, char **argv)
 		case 'h':
 			flags[1] = 1;
 			break;
-		case 'l':
+		case 'v':
 			flags[2] = 1;
+			break;
+		case 'l':
+			flags[3] = 1;
 			break;
 		case 'a':
 			values[0] = optarg;
@@ -82,18 +85,17 @@ int main(int argc, char **argv)
 	if (values[0]) {
 		if(wd_add(bucket, values[0]) == 0)
 			wd_save(bucket);
-		return 0;
 	}
 	else if (values[1]) {
 		if (wd_rm(bucket, values[1]) == 0)
 			wd_save(bucket);
-		return 0;
 	}
 
 	/* Non-option arguments */
 	if (flags[0])      wd_clean();
 	else if (flags[1]) wd_help();
-	else if (flags[2]) wd_list();
+	else if (flags[2]) wd_version();
+	else if (flags[3]) wd_list();
 
 
 	/* Because we won't handle their output as 

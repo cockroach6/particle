@@ -135,32 +135,8 @@ box_set()
 	_set_passwd && _datalinks && _setdevs
 
 	# update bash session
-	if [[ $SHLVL -le 2 ]]; then
-		exec $SHELL
-	fi
+	test $SHLVL -le 2 && exec $SHELL
 }
-
-
-box_clean()
-{
-	echo "[*] clean machine RAM"
-}
-
-
-box_debug()
-{
-	echo "[*] debug box to improve it"
-}
-
-
-box_halt()
-{
-	echo '[*] halt machine'
-	sudo shutdown now
-}
-
-
-
 
 # set new passwd for more security
 _set_passwd()
@@ -249,15 +225,31 @@ _pkgs()
 	rm -rf $PARTICLE_DIR && echo
 }
 
+
 _user_utils()
 {
 	sshpass -p "server98" ssh server@192.168.0.103
-	if [[ $? -eq 6 ]]; then
-		ssh server@192.168.0.103
-	fi
+	test $? -eq 6 && ssh server@192.168.0.103
 }
 
 
+box_clean()
+{
+	echo "[*] clean machine RAM"
+}
+
+
+box_debug()
+{
+	echo "[*] debug box to improve it"
+}
+
+
+box_halt()
+{
+	echo '[*] halt machine'
+	sudo shutdown now
+}
 
 
 # Interface
@@ -279,7 +271,8 @@ elif [[ $1 == "util" ]]; then
 elif [[ $1 == "help" ]]; then
 	usage
 elif [[ $1 == "version" ]]; then
-	echo "box (box util) $VERSION"
+	echo "box (particle) $VERSION"
+	
 elif [[ $# -eq 0 ]]; then
 	usage
 else

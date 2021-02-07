@@ -12,7 +12,7 @@
 #define SIZE_PNT    SIZE_NAME + SIZE_DIR
 #define FNAME_LEN   20
 #define DEMIL       ":"
-
+#define VERSION     2.0
 
 
 /* BUGS:
@@ -20,7 +20,7 @@
 */
 
 
-/* "a:clhr:" */
+/* "a:clhvr:" */
 char *filename;
 const char *usage =
 	"Usage:\n"
@@ -50,6 +50,12 @@ static int getfname(void)
 int wd_help(void)
 {
 	printf("%s", usage);
+	return 1;
+}
+
+int wd_version(void)
+{
+	printf("wd (particle) %.1f\n", VERSION);
 	return 1;
 }
 
