@@ -6,31 +6,24 @@
 #include <unistd.h>
 #include "engine.h"
 
-
 #define SIZE_NAME   10
 #define SIZE_DIR    90
 #define SIZE_PNT    SIZE_NAME + SIZE_DIR
 #define FNAME_LEN   20
 #define DEMIL       ":"
-#define VERSION     2.0
+#define VERSION     2.2
 
 
-/* BUGS:
-	1) Help option doesn't work properly
-*/
-
-
-/* "a:clhvr:" */
 char *filename;
 const char *usage =
 	"Usage:\n"
 	"  wd [option] [jump point]\n"
 	"Options:\n"
-	"  -a                         add new dir point\n"
-	"  -c                         clear all dir point\n"
-	"  -l                         list dir point\n"
+	"  -a                         add new directory name point\n"
+	"  -c                         clear all directory name point\n"
+	"  -l                         list directory name point\n"
 	"  -h                         display this help\n"
-	"  -r                         remove dir point\n";
+	"  -r                         remove directory name point\n";
 
 
 static int wd_error(char *msg) {
@@ -94,8 +87,8 @@ void wd_fillpnt(struct point *point, char *line) {
 	tok = strtok(line, DEMIL);
 	point->name = strdup(tok);
 	tok = strtok(NULL, DEMIL);
-	point->dir  = strdup(tok);
-	point->dir[strlen(point->dir) -1] = 0;
+	point->dirname  = strdup(tok);
+	point->dirname[strlen(point->dirname) -1] = 0;
 }
 
 int wd_chkdup(struct bucket *bucket, char *name) {
@@ -108,12 +101,12 @@ int wd_chkdup(struct bucket *bucket, char *name) {
 }
 
 int wd_add(struct bucket *bucket, char *name) {
-	char dir[SIZE_DIR];
-	getcwd(dir, SIZE_DIR);
+	char dirname[SIZE_DIR];
+	getcwd(dirname, SIZE_DIR);
 
 	if (bucket->avail >= bucket->size) 
 		wd_error("number of space points is full");
-	
+
 	if (wd_chkdup(bucket, name) != 0) {
 		fprintf(stderr, "Warn: point was dublicated '%s'\n", name);
 		return 1;
@@ -122,14 +115,14 @@ int wd_add(struct bucket *bucket, char *name) {
 	int i = bucket->avail;
 	bucket->points[i] = malloc(sizeof(struct point));
 	bucket->points[i]->name = strdup(name);
-	bucket->points[i]->dir  = strdup(dir);
+	bucket->points[i]->dirname  = strdup(dirname);
 	bucket->avail++;
 	return 0;
 }
 
 int wd_free(struct point *point) {
 	free(point->name);
-	free(point->dir);
+	free(point->dirname);
 	free(point);
 	return 0;
 }
@@ -161,7 +154,7 @@ int wd_save(struct bucket *bucket) {
 	for (int i = 0; i < bucket->avail; i++) {
 		if (bucket->points[i]->name == NULL)
 			continue;
-		fprintf(f, "%s:%s\n", bucket->points[i]->name, bucket->points[i]->dir);
+		fprintf(f, "%s:%s\n", bucket->points[i]->name, bucket->points[i]->dirname);
 	}
 	return 0;
 }

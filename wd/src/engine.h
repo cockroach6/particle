@@ -11,7 +11,7 @@
 
 struct point {
 	char *name;
-	char *dir;
+	char *dirname;
 };
 
 struct bucket {
