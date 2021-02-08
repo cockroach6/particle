@@ -5,26 +5,17 @@
 
 #include "engine.h"
 
-/* 	wd - warp directory 
-   It's wrapper for `cd` command which brings some
-   addition functions.
+/* wd - warp dirnameectory 
+   It's wrapper for `cd` command which's more suitable if you deal with long and
+   friquently used paths.
 */
 
 
-/*	BUGS:
-   1)+ Help option doesn't work
-   2)+ Default option should be jump point
-   3)  Program accepts several jump point at once,
-        BUT it shouldn't.
-   4)  Have to correct argument handler
-*/
-
-
-char *wd_getdir(struct bucket *bucket, char *name) {
+char *wd_getdirname(struct bucket *bucket, char *name) {
 	int avail = bucket->avail;
 	for (int i = 0; i < avail; i++) {
 		if (strcmp(bucket->points[i]->name, name) == 0)
-			return bucket->points[i]->dir;
+			return bucket->points[i]->dirname;
 	}
 	return NULL;
 }
@@ -34,7 +25,7 @@ int main(int argc, char **argv)
 	int index, c;
 	int flags[] = { 0, 0, 0, 0};
 	char *(values[]) = { NULL, NULL };
-	char *dir;
+	char *dirname;
 	struct bucket *bucket = wd_init();
 
 	opterr = 0;
@@ -73,15 +64,15 @@ int main(int argc, char **argv)
 		}
 	}
 
-	/* Jump into directory */
+	/* Jump into dirnameectory */
 	for (index = optind; index < argc; index++) {
-		if ((dir = wd_getdir(bucket, argv[index])) != NULL) {
-			printf("%s", dir);
+		if ((dirname = wd_getdirname(bucket, argv[index])) != NULL) {
+			printf("%s", dirname);
 			return 0;
 		}
 	}
 
-	/* "a:clhr:" */
+	/* Optional arguments */
 	if (values[0]) {
 		if(wd_add(bucket, values[0]) == 0)
 			wd_save(bucket);
@@ -91,15 +82,15 @@ int main(int argc, char **argv)
 			wd_save(bucket);
 	}
 
-	/* Non-option arguments */
+	/* Non-optional arguments */
 	if (flags[0])      wd_clean();
 	else if (flags[1]) wd_help();
 	else if (flags[2]) wd_version();
 	else if (flags[3]) wd_list();
 
-
-	/* Because we won't handle their output as 
-		directory path. So return 1 instead of 0.
+	/* 
+		Because we won't handle their output as 
+		dirnameectory path. So return 1 instead of 0.
 	*/
 	return 1;
 }

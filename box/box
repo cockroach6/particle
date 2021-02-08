@@ -1,5 +1,6 @@
 #!/bin/bash
 
+ARCH=x32
 DEV=/dev/sdc
 USER=`whoami`
 PASSWD=kali
@@ -35,26 +36,24 @@ BOX_FILES=(
 )
 
 
-usage()
+_usage()
 {
-	echo "Usage: box [OPTION]..."
-	echo " init                  make disk partition and directory structure at first time"
-	echo " set                   set user's environment extensions (default option)"
-	echo " clean                 clean machine RAM"
-	echo " debug                 debug box to improve it"
-	echo " halt                  wrapper for command shutdown"
-	echo
-	echo " pkg                   download, compile and install user packages (USERLAND)"
-	echo " util                  most friquently used utils"
-	echo " help                  give this help list"
-	echo " version               show version of util"
+	echo "Usage: box [option]"
+	echo "Options:"
+	echo " -i                    make disk partition and directory structure"
+	echo " -s                    set user's environment extensions"
+	echo " -c                    clean machine RAM"
+	echo " -d                    debug box to improve it"
+	echo " -H                    wrapper for command shutdown"
+	echo " -p                    download, compile and install user packages"
+	echo " -u                    most friquently used utils"
+	echo " -h                    give this help list"
+	echo " -v                    show box version"
 }
 
 
-# make disk partition and directory structure at first time
 box_init()
 {
-	# chose disk device
 	printf "Device (default /dev/sdc): "   && read _DEV
 	test -z $_DEV || DEV=$_DEV
 	test -e $DEV  || (echo -e "\nError: no such disk device \`$DEV'" && exit)
@@ -142,6 +141,7 @@ box_set()
 _set_passwd()
 {
 	echo "[*] set new password"
+	echo
 }
 
 # make symbolic links to dirs, file, etc
@@ -183,7 +183,7 @@ _setdevs()
 	echo "    [-] monitor"
 	xset s off # don't activate screensaver
 	xset -dpms # disable DPMS (Energy Star) features.
-	xset s noblank # don't blank the video device
+	#xset s noblank # don't blank the video device
 	xrandr | grep 'VGA-1 disconnected' -q
 	if [[ $? -eq 1 ]];then
 		xrandr --output LVDS-1 --off
@@ -200,7 +200,7 @@ _pkgs()
 {
 	echo "[*] user pkgs"
 	SUBLIME_TEXT_URL=https://download.sublimetext.com
-	SUBLIME_TEXT_TAR=sublime_text_3_build_3211_x32.tar.bz2
+	SUBLIME_TEXT_TAR=sublime_text_3_build_3211_$ARCH.tar.bz2
 	TELEGRAM_URL=https://telegram.org/dl/desktop/linux32
 	TELEGRAM_TAR=telegram.tar.xz
 	PARTICLE_URL=https://github.com/qcockroach/particle
@@ -242,7 +242,7 @@ box_clean()
 
 box_debug()
 {
-	echo "[*] debug box to improve it"
+	echo "[*] debug box"
 }
 
 
@@ -254,29 +254,27 @@ box_halt()
 
 
 # Interface
-if [[ $1 == "init" ]]; then
-	box_init
-elif [[ $1 == "set" ]]; then
-	box_set
-elif [[ $1 == "clean" ]]; then
-	box_clean
-elif [[ $1 == "debug" ]]; then
-	box_debug
-elif [[ $1 == "halt" ]]; then
-	box_halt
-
-elif [[ $1 == "pkg" ]]; then
-	_pkgs
-elif [[ $1 == "util" ]]; then
-	_user_utils
-elif [[ $1 == "help" ]]; then
-	usage
-elif [[ $1 == "version" ]]; then
-	echo "box (particle) $VERSION"
-
-elif [[ $# -eq 0 ]]; then
-	usage
-else
-	echo "[~] Warning: unknown argument \`$1'"
-	echo "    Please type \`box help' for more information"
-fi
+while getopts ":iscHdpuhv" opt; do
+case ${opt} in
+	i)
+		box_init ;;
+	s)
+		box_set ;;
+	c)
+		box_clean ;;
+	d)
+		box_debug ;;
+	H)
+		box_halt ;;
+	p)
+		_pkgs ;;
+	u)
+		_user_utils ;;
+	h)
+		_usage ;;
+	v)
+		echo "box (particle) $VERSION" ;;
+   \?)
+		echo "Unknown option character \`-"$OPTARG"\`";;
+esac
+done
