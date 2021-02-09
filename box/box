@@ -243,9 +243,13 @@ _user_utils()
 			;;
 		send )
 			printf "Enter file path: " && read filepath
-			test -e $filepath || \
+			
+			#test -e $filepath || echo "scp: cannot access '$filepath': No such file or directory" && exit
+			if [[ -d $filepath || -f $filepath ]]; then
+				sshpass -p $SERVPASS scp -r $filepath server@$SERVIP:~/shared
+			else
 				echo "scp: cannot access '$filepath': No such file or directory" && exit
-			sshpass -p $SERVPASS scp -r $filepath server@$SERVIP:~/shared
+			fi
 	esac
 }
 
