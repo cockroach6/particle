@@ -46,7 +46,7 @@ else
 fi
 
 
-_usage()
+box_usage()
 {
 	echo "Usage: box [option]"
 	echo "Options:"
@@ -74,7 +74,7 @@ box_init()
 
 	test -e $BOX_DIR
 	if [[ $? -eq 0 ]]; then
-		echo   "[~] Warning: \`box\` partitioin already exists"
+		echo   "[~] Warning: \`box\` partitioin exists already"
 		printf "[!] Do you want to format  \`box\` partitioin anyway? [y/N] " && read anw
 		test $anw = yes && echo "    [-] Formating disk partitioin" || (echo "Abort" && exit)
 	fi
@@ -89,11 +89,11 @@ box_init()
 	sudo chown $USER:$USER -R $BOX_DIR
 	rm -rf $BOX_DIR/*
 
-	echo "    [-] make root dir structure"
+	echo "    [-] make system directories"
 	for item in ${BOX_ROOT[@]}; do
 		mkdir -p $item;
 	done
-	echo "    [-] make user dir structure"
+	echo "    [-] make user directories"
 	for item in ${BOX_DIRS[@]}; do
 		echo "$item"
 		mkdir -p $item;
@@ -229,7 +229,7 @@ _pkgs()
 
 	wget -q --show-progress $TELEGRAM_URL --output-document $TELEGRAM_TAR
 	tar -xf $TELEGRAM_TAR && rm -rf $TELEGRAM_TAR
-	(mv Telegram/* $BOX_LOCAL/bin || echo "app's already installed") && rm -rf Telegram && echo
+	(mv Telegram/* $BOX_LOCAL/bin || echo "app's already installed") && rm -rf Telegram
 
 	wget -q --show-progress $PARTICLE_URL --output-document $PARTICLE_TAR.zip
 	unzip -q $PARTICLE_TAR && cd $PARTICLE_TAR/wd
@@ -237,32 +237,34 @@ _pkgs()
 	rm -rf $PARTICLE_TAR*
 
 	printf "sshpass"
-	sudo apt-get install sshpass
-	echo
+	sudo apt-get update && sudo apt-get install sshpass -y
 }
 
 
 _user_utils()
 {
-	SERVIP=192.168.0.103
-	SERVPASS=server98
-	SERVDIR=/home/server/dgarb/shared
+	NAME=server
+	IP=192.168.0.103
+	PASSWD=server98
+	DIR=/home/server/dgarb/shared
 
 	case $1 in
 		conn )
-			sshpass -p "server98" ssh server@$SERVIP
-			test $? -eq 6 && ssh server@$SERVIP
+			sshpass -p $PASSWD ssh $NAME@$IP
+			test $? -eq 6 && ssh server@$IP
 			;;
 		send )
 			printf "Enter file path: " && read filepath
 
 			if [[ -d $filepath || -f $filepath ]]; then
-				sshpass -p $SERVPASS scp -r $filepath server@$SERVIP:$SERVDIR
+				sshpass -p $PASSWD scp -r $filepath server@$IP:$DIR
 			else
 				echo "scp: cannot access '$filepath': No such file or directory" && exit
 			fi
+			;;
 	esac
 }
+
 
 
 box_clean()
@@ -290,7 +292,7 @@ box_halt()
 
 
 # Interface
-while getopts ":isc:Hdpu:hv" opt; do
+while getopts ":isc:Hhdpu:v" opt; do
 	case ${opt} in
 		i)
 			box_init ;;
@@ -302,12 +304,12 @@ while getopts ":isc:Hdpu:hv" opt; do
 			box_debug ;;
 		H)
 			box_halt ;;
+		h)
+			box_usage ;;
 		p)
 			_pkgs ;;
 		u)
 			_user_utils $OPTARG ;;
-		h)
-			_usage ;;
 		v)
 			echo "box (particle) $VERSION" ;;
 		:)
@@ -317,4 +319,4 @@ while getopts ":isc:Hdpu:hv" opt; do
 	esac
 	exit
 done
-echo "box gets one necessary option. Type \`box -h' for more information"
+box_usage
