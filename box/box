@@ -40,13 +40,13 @@ _usage()
 {
 	echo "Usage: box [option]"
 	echo "Options:"
-	echo " -i                    make disk partition and directory structure"
-	echo " -s                    set user's environment extensions"
+	echo " -i                    init box environment"
+	echo " -s                    set box environment extensions"
 	echo " -c                    clean machine RAM"
 	echo " -d                    debug box to improve it"
 	echo " -H                    wrapper for command shutdown"
 	echo " -p                    download, compile and install user packages"
-	echo " -u                    most friquently used utils"
+	echo " -u                    user utils: conn, send"
 	echo " -h                    give this help list"
 	echo " -v                    show box version"
 }
@@ -224,13 +224,29 @@ _pkgs()
 	cd $PARTICLE_DIR/wd
 	make -s init && make -s && make -s install && cd ../..
 	rm -rf $PARTICLE_DIR && echo
+
+	printf "sshpass"
+	sudo apt-get install sshpass
 }
 
 
 _user_utils()
 {
-	sshpass -p "server98" ssh server@192.168.0.103
-	test $? -eq 6 && ssh server@192.168.0.103
+	USERIP=192.168.0.101 # have to use command like ifconfid for that
+	SERVIP=192.168.0.103
+	SERVPASS=server98
+
+	case $1 in
+		conn )
+			sshpass -p "server98" ssh server@$SERVIP
+			test $? -eq 6 && ssh server@$SERVIP
+			;;
+		send )
+			printf "Enter file path: " && read filepath
+			test -e $filepath || \
+				echo "scp: cannot access '$filepath': No such file or directory" && exit
+			sshpass -p $SERVPASS scp -r $filepath server@$SERVIP:~/shared
+	esac
 }
 
 
@@ -254,7 +270,7 @@ box_halt()
 
 
 # Interface
-while getopts ":iscHdpuhv" opt; do
+while getopts ":iscHdpu:hv" opt; do
 	case ${opt} in
 		i)
 			box_init ;;
@@ -269,14 +285,16 @@ while getopts ":iscHdpuhv" opt; do
 		p)
 			_pkgs ;;
 		u)
-			_user_utils ;;
+			_user_utils $OPTARG;;
 		h)
 			_usage ;;
 		v)
 			echo "box (particle) $VERSION" ;;
+		:)
+			echo "Option -$OPTARG requires argument" ;;
 	   \?)
-			echo "Unknown option character \`-"$OPTARG"\`";;
+			echo "Unknown option character \`-$OPTARG'";;
 	esac
 	exit
 done
-echo "box gets one necessary option. Type \`box -h\` for more information"
+echo "box gets one necessary option. Type \`box -h' for more information"
