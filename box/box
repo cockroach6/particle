@@ -255,26 +255,28 @@ box_halt()
 
 # Interface
 while getopts ":iscHdpuhv" opt; do
-case ${opt} in
-	i)
-		box_init ;;
-	s)
-		box_set ;;
-	c)
-		box_clean ;;
-	d)
-		box_debug ;;
-	H)
-		box_halt ;;
-	p)
-		_pkgs ;;
-	u)
-		_user_utils ;;
-	h)
-		_usage ;;
-	v)
-		echo "box (particle) $VERSION" ;;
-   \?)
-		echo "Unknown option character \`-"$OPTARG"\`";;
-esac
+	case ${opt} in
+		i)
+			box_init ;;
+		s)
+			box_set ;;
+		c)
+			box_clean ;;
+		d)
+			box_debug ;;
+		H)
+			box_halt ;;
+		p)
+			_pkgs ;;
+		u)
+			_user_utils ;;
+		h)
+			_usage ;;
+		v)
+			echo "box (particle) $VERSION" ;;
+	   \?)
+			echo "Unknown option character \`-"$OPTARG"\`";;
+	esac
+	exit
 done
+echo "box gets one necessary option. Type \`box -h\` for more information"
