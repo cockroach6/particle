@@ -28,8 +28,10 @@ BOX_DIRS=(
 	$BOX_HOME/.ssh
 	$BOX_HOME/.config/chromium
 	$BOX_HOME/xunison
+	$BOX_HOME/shared
 )
 BOX_FILES=(
+	$BOX_HOME/.box-credentials
 	$BOX_HOME/.git-credentials
 	$BOX_HOME/.gitconfig
 	$BOX_HOME/.wreck
@@ -242,7 +244,6 @@ _pkgs()
 
 _user_utils()
 {
-	USERIP=192.168.0.101 # have to use command like ifconfid for that
 	SERVIP=192.168.0.103
 	SERVPASS=server98
 	SERVDIR=/home/server/dgarb/shared
@@ -296,7 +297,7 @@ while getopts ":isc:Hdpu:hv" opt; do
 		s)
 			box_set ;;
 		c)
-			box_clean $OPTARG;;
+			box_clean $OPTARG ;;
 		d)
 			box_debug ;;
 		H)
@@ -312,7 +313,7 @@ while getopts ":isc:Hdpu:hv" opt; do
 		:)
 			echo "Option -$OPTARG requires argument" ;;
 	   \?)
-			echo "Unknown option character \`-$OPTARG'";;
+			echo "Unknown option character \`-$OPTARG'" ;;
 	esac
 	exit
 done
