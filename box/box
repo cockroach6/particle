@@ -12,7 +12,7 @@ BOX_BRW_DIR=$BOX_DIR/home/.config/chromium
 BOX_LOCAL=$BOX_HOME/.local
 BOX_PATH=$BOX_DIR/bin:$BOX_LOCAL/bin:\$PATH
 BOX=$(echo $(pwd)$(find . -type f -name 'box') | tr -d '.')
-VERSION=2.2
+VERSION=2.3
 
 BOX_ROOT=(
 	$BOX_DIR/bin
@@ -34,6 +34,14 @@ BOX_FILES=(
 	$BOX_HOME/.gitconfig
 	$BOX_HOME/.wreck
 )
+
+
+# system part
+if [[ `uname -m` == 'i686' ]]; then
+	ARCH=x32
+else
+	ARCH=x64
+fi
 
 
 _usage()
@@ -137,15 +145,14 @@ box_set()
 	test $SHLVL -le 2 && exec $SHELL
 }
 
-# set new passwd for more security
+# set non-default passwd for more security
 _set_passwd()
 {
 	echo "[*] set new password"
 	echo
 }
 
-# make symbolic links to dirs, file, etc
-# clear && cd && rm -rf Downloads dump .git* .local .wreck cockroach
+# make symbolic links
 _datalinks()
 {
 	echo "[*] datalinks"
@@ -200,13 +207,15 @@ _pkgs()
 {
 	echo "[*] user pkgs"
 	SUBLIME_TEXT_URL=https://download.sublimetext.com
-	SUBLIME_TEXT_TAR=sublime_text_3_build_3211_$ARCH.tar.bz2
+	SUBLIME_TEXT_TAR=sublime_text_3_build_3211_x32.tar.bz2
 	TELEGRAM_URL=https://telegram.org/dl/desktop/linux32
 	TELEGRAM_TAR=telegram.tar.xz
-	PARTICLE_URL=https://github.com/qcockroach/particle
-	PARTICLE_DIR=particle
+	PARTICLE_URL=https://github.com/qcockroach/particle/archive/main.zip
+	PARTICLE_TAR=particle-main
+
 
 	if [[ $ARCH != 'x32' ]]; then
+		SUBLIME_TEXT_TAR=sublime_text_3_build_3211_x64.tar.bz2
 		TELEGRAM_URL=https://telegram.org/dl/desktop/linux
 	fi
 
@@ -216,17 +225,18 @@ _pkgs()
 	tar -xf $SUBLIME_TEXT_TAR && rm -rf $SUBLIME_TEXT_TAR
 	(mv sublime_text_3/* $BOX_LOCAL/bin || echo "app's already installed") && rm -rf sublime_text_3
 
-	wget -q --show-progress $TELEGRAM_URL --output-document $TELEGRAM_TAR 
+	wget -q --show-progress $TELEGRAM_URL --output-document $TELEGRAM_TAR
 	tar -xf $TELEGRAM_TAR && rm -rf $TELEGRAM_TAR
 	(mv Telegram/* $BOX_LOCAL/bin || echo "app's already installed") && rm -rf Telegram && echo
 
-	printf "particle " && git clone -q $PARTICLE_URL && echo
-	cd $PARTICLE_DIR/wd
+	wget -q --show-progress $PARTICLE_URL --output-document $PARTICLE_TAR.zip
+	unzip -q $PARTICLE_TAR && cd $PARTICLE_TAR/wd
 	make -s init && make -s && make -s install && cd ../..
-	rm -rf $PARTICLE_DIR && echo
+	rm -rf $PARTICLE_TAR*
 
 	printf "sshpass"
 	sudo apt-get install sshpass
+	echo
 }
 
 
@@ -235,6 +245,7 @@ _user_utils()
 	USERIP=192.168.0.101 # have to use command like ifconfid for that
 	SERVIP=192.168.0.103
 	SERVPASS=server98
+	SERVDIR=/home/server/dgarb/shared
 
 	case $1 in
 		conn )
@@ -243,10 +254,9 @@ _user_utils()
 			;;
 		send )
 			printf "Enter file path: " && read filepath
-			
-			#test -e $filepath || echo "scp: cannot access '$filepath': No such file or directory" && exit
+
 			if [[ -d $filepath || -f $filepath ]]; then
-				sshpass -p $SERVPASS scp -r $filepath server@$SERVIP:~/shared
+				sshpass -p $SERVPASS scp -r $filepath server@$SERVIP:$SERVDIR
 			else
 				echo "scp: cannot access '$filepath': No such file or directory" && exit
 			fi
@@ -256,7 +266,12 @@ _user_utils()
 
 box_clean()
 {
-	echo "[*] clean machine RAM"
+	echo "[*] clean unnecessary garbage"
+
+	echo "PageCashe, Dentries and inodes"
+	sudo sysctl vm.drop_caches=$1
+
+	echo "Browser metadata"
 }
 
 
@@ -274,14 +289,14 @@ box_halt()
 
 
 # Interface
-while getopts ":iscHdpu:hv" opt; do
+while getopts ":isc:Hdpu:hv" opt; do
 	case ${opt} in
 		i)
 			box_init ;;
 		s)
 			box_set ;;
 		c)
-			box_clean ;;
+			box_clean $OPTARG;;
 		d)
 			box_debug ;;
 		H)
@@ -289,7 +304,7 @@ while getopts ":iscHdpu:hv" opt; do
 		p)
 			_pkgs ;;
 		u)
-			_user_utils $OPTARG;;
+			_user_utils $OPTARG ;;
 		h)
 			_usage ;;
 		v)
