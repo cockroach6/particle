@@ -1,0 +1,51 @@
+#!/bin/bash
+clear
+
+DEV=/dev/sdc
+BOX_DIR=/media/$USER/box
+
+init()
+{
+	echo "[*] init disk partition"
+	printf "  Device (default /dev/sdc): "   && read _DEV
+	
+	test -z $_DEV || DEV=$_DEV && test -b $DEV # && echo "OK $DEV" || echo "ERR $DEV"
+
+	if [[ $? -eq 1 ]]; then
+		echo -e "  Error: no such disk device \`$DEV'"
+		exit
+	fi
+
+	printf "  Do you want to format \`box\` disk partition? [y/N] " && read anw
+	if [[ $anw != 'yes' ]]; then
+		echo "Abort" && exit
+	fi
+
+	if [[ -d $BOX_DIR ]]; then
+		echo "  Warning: \`box\` partitioin exists already."
+		printf "  Do you want to format \`box\` partitioin anyway? [y/N] " && read anw
+		if [[ $anw != 'yes' ]]; then
+			echo "Abort"
+			exit
+		fi
+		echo -e "\n  Format disk partitioin"
+	fi
+
+	echo "  Make disk partitioin"
+	echo "  Make system directories"
+	echo "  Make user directories"
+}
+
+
+init
+
+
+func()
+{
+	exit
+}
+#test 1 == 1 && echo "OK" || echo "Err" && exit
+#test 18 == 1 || (echo "Err" && func) && echo "OK"
+#echo "END"
+
+
