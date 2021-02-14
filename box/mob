@@ -8,4 +8,3 @@ git add .
 printf "commit: " && read comm
 git commit -m "$comm"
 git push
-
