@@ -53,8 +53,9 @@ box_usage()
 	echo " -i                    init box environment"
 	echo " -s                    set box environment (by default)"
 	echo " -c                    free box RAM memory"
-	echo " -u                    user utils: conn, send, pkgs, halt"
 	echo " -d                    debug box"
+	echo " -r                    reset box changes"
+	echo " -u                    user utils: conn, send, pkgs, halt"
 	echo " -h                    give this help list"
 	echo " -v                    show box version"
 }
@@ -137,17 +138,23 @@ box_clean()
 
 box_debug()
 {
-	echo "debug"
+	echo "[*] debug"
+}
+
+box_reset()
+{
+	echo "[*] reset"
 	for d in ${BOX_DIRS[@]}; do
 		DEST=${d#"$BOX_HOME/"}
+		echo $DEST
 		unlink $DEST
 	done
 	for f in ${BOX_FILES[@]}; do
 		DEST=${f#"$BOX_HOME/"}
+		echo $DEST
 		unlink $DEST
 	done
 }
-
 
 
 
@@ -217,7 +224,7 @@ _init_save_git_creden()
 	printf "git email  : " && read GIT_EMAIL
 	printf "git name   : " && read GIT_NAME
 	printf "git passwd : " && read GIT_PASSWD
-	if [[ $GIT_EMAIL == '' || $GIT_NAME == '' $GIT_PASSWD == '' ]]; then
+	if [[ $GIT_EMAIL == '' || $GIT_NAME == '' || $GIT_PASSWD == '' ]]; then
 		echo "email, name or password is empty"
 		_init_save_git_creden
 	fi
@@ -330,10 +337,8 @@ _util_pkgs()
 }
 
 
-
-
 # Interface
-while getopts ":isdc:hu:v" opt; do
+while getopts ":isdrc:hu:v" opt; do
 	case ${opt} in
 		i)
 			box_init ;;
@@ -341,6 +346,8 @@ while getopts ":isdc:hu:v" opt; do
 			box_set ;;
 		c)
 			box_clean $OPTARG ;;
+		r)
+			box_reset ;;
 		d) 
 			box_debug ;;
 		h)
