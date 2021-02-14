@@ -214,9 +214,18 @@ _init_save_new_passwd()
 _init_save_git_credentials()
 {
 	echo "    [-] init git credentials"
-	git config --global user.email "hon.mechanic@gmail.com"
-	git config --global user.name "qcockroach"
+	printf "git email  : " && read GIT_EMAIL
+	printf "git name   : " && read GIT_NAME
+	printf "git passwd : " && read GIT_PASSWD
+	if [[ $GIT_EMAIL == '' || $GIT_NAME == '' $GIT_PASSWD == '' ]]; then
+		echo "email, name or password is empty"
+		_init_save_git_credentials
+	fi
+	git config --global user.email $GIT_EMAIL
+	git config --global user.name  $GIT_NAME
 	git config --global credential.helper store
+	echo -e "https://$GIT_NAME:$GIT_PASSWD@github.com\n" > ${BOX_FILES[1]};
+	echo
 }
 _init_save_box_itself()
 {
