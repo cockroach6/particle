@@ -62,9 +62,7 @@ box_usage()
 
 box_init()
 {
-	if [[ _init_user_prompt -ne 0 ]]; then
-		exit 1
-	fi
+	_init_user_prompt && test $? -eq 0 || exit 1
 
 	echo "  Make disk partitioin"
 	sudo wipefs --all --force $BOX_DEVPART
@@ -76,9 +74,8 @@ box_init()
 	sudo chown $USER:$USER -R $BOX_DIR
 	rm -rf $BOX_DIR/*
 
-	if [[ `_init_fs_struct 0` -ne 0 ]]; then
-		exit 1
-	fi
+	_init_fs_struct 0 && test $? -eq 0 || exit 1
+
 	_init_save_git_credentials
 	_init_save_new_passwd
 	_init_save_box_itself
@@ -191,17 +188,15 @@ _init_fs_struct()
 	if [[ $1 -eq 0 ]]; then
 		echo "  Make system directories"
 		for item in ${BOX_ROOT[@]}; do
-			mkdir -p $item;
+			echo "$item" && mkdir -p $item;
 		done
 	fi
 	echo "  Make user directories"
 	for item in ${BOX_DIRS[@]}; do
-		echo "$item"
-		mkdir -p $item;
+		echo "$item" && mkdir -p $item;
 	done
 	for item in ${BOX_FILES[@]}; do
-		echo "$item"
-		touch $item
+		echo "$item" && touch $item
 	done
 	echo
 }

@@ -1,10 +1,53 @@
 #!/bin/bash
-clear
 
+ARCH=x32
 DEV=/dev/sdc
+USER=`whoami`
+PASSWD=kali
 BOX_DIR=/media/$USER/box
 
-init()
+BOX_DEVPART="$DEV"3
+BOX_HOME=$BOX_DIR/home
+BOX_BRW_DIR=$BOX_DIR/home/.config/chromium
+BOX_LOCAL=$BOX_HOME/.local
+BOX_PATH=$BOX_DIR/bin:$BOX_LOCAL/bin:\$PATH
+BOX=$(echo $(pwd)$(find . -type f -name 'box') | tr -d '.')
+VERSION=2.3
+
+BOX_ROOT=(
+	$BOX_DIR/bin
+	$BOX_DIR/var
+	$BOX_DIR/etc
+	$BOX_DIR/home
+)
+BOX_DIRS=(
+	$BOX_HOME/Downloads
+	$BOX_HOME/git
+	$BOX_HOME/dump
+	$BOX_HOME/.local
+	$BOX_HOME/.ssh
+	$BOX_HOME/.config/chromium
+	$BOX_HOME/xunison
+	$BOX_HOME/shared
+)
+BOX_FILES=(
+	$BOX_HOME/.box-credentials
+	$BOX_HOME/.git-credentials
+	$BOX_HOME/.gitconfig
+	$BOX_HOME/.wreck
+)
+
+
+
+box_init()
+{
+	_init_user_prompt && test $? -eq 0 || exit 1
+	echo "..." && echo
+
+	_init_fs_struct 0 && test $? -eq 0 || exit 1
+}
+
+_init_user_prompt()
 {
 	echo "[*] init disk partition"
 	printf "  Device (default /dev/sdc): "   && read _DEV
@@ -13,12 +56,12 @@ init()
 
 	if [[ $? -eq 1 ]]; then
 		echo -e "  Error: no such disk device \`$DEV'"
-		exit
+		return 1
 	fi
 
 	printf "  Do you want to format \`box\` disk partition? [y/N] " && read anw
 	if [[ $anw != 'yes' ]]; then
-		echo "Abort" && exit
+		echo "Abort" && return 1
 	fi
 
 	if [[ -d $BOX_DIR ]]; then
@@ -26,26 +69,38 @@ init()
 		printf "  Do you want to format \`box\` partitioin anyway? [y/N] " && read anw
 		if [[ $anw != 'yes' ]]; then
 			echo "Abort"
-			exit
+			return 1
 		fi
 		echo -e "\n  Format disk partitioin"
 	fi
-
-	echo "  Make disk partitioin"
-	echo "  Make system directories"
-	echo "  Make user directories"
+	return 0;
 }
 
-
-init
-
-
-func()
+_init_fs_struct()
 {
-	exit
+	if [[ $# -eq 0 ]]; then
+		echo "Error: missing argument in _init_fs_struct"
+		return 1
+	fi
+
+	if [[ $1 -eq 0 ]]; then
+		echo "  Make system directories"
+		for item in ${BOX_ROOT[@]}; do
+			echo "$item"
+			#mkdir -p $item;
+		done
+	fi
+	echo "  Make user directories"
+	for item in ${BOX_DIRS[@]}; do
+		echo "$item"
+		# && mkdir -p $item;
+	done
+	for item in ${BOX_FILES[@]}; do
+		echo "$item"
+		# && touch $item
+	done
+	echo
 }
-#test 1 == 1 && echo "OK" || echo "Err" && exit
-#test 18 == 1 || (echo "Err" && func) && echo "OK"
-#echo "END"
 
 
+box_init
