@@ -5,4 +5,6 @@ BOX_DIR=/media/kali/box
 test -e $BOX_DIR/bin/box && cat $BOX_DIR/bin/box > box
 diff $BOX_DIR/bin/box box
 git add .
-echo "Make commit now"
+printf "commit: " && read comm
+git commit -m "$comm"
+git push
