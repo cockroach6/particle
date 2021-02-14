@@ -1,5 +1,12 @@
 #!/bin/bash
 
+<<<<<<< HEAD
+ARCH=x32
+DEV=/dev/sdc
+USER=`whoami`
+PASSWD=kali
+BOX_DIR=/media/`whoami`/box
+=======
 # User defined variables
 # Please, make sure you specified them for machine
 # to avoid unnecessary problems
@@ -8,6 +15,7 @@ DEV=/dev/sdc                    # where your 'Live USB' mounted. Use fdisk for m
 USER=`whoami`                   # machine user name
 PASSWD=kali                     # user password. You can change it for more security
 BOX_DIR=/media/$USER/box        # path to your extended partition for saving data
+>>>>>>> box2.3
 
 BOX_DEVPART="$DEV"3
 BOX_HOME=$BOX_DIR/home
@@ -42,6 +50,19 @@ BOX_FILES=(
 )
 
 
+<<<<<<< HEAD
+_usage()
+{
+	echo "Usage: box [option]"
+	echo "Options:"
+	echo " -i                    make disk partition and directory structure"
+	echo " -s                    set user's environment extensions"
+	echo " -c                    clean machine RAM"
+	echo " -d                    debug box to improve it"
+	echo " -H                    wrapper for command shutdown"
+	echo " -p                    download, compile and install user packages"
+	echo " -u                    most friquently used utils"
+=======
 # system part
 if [[ `uname -m` == 'i686' ]]; then
 	ARCH=x32
@@ -60,6 +81,7 @@ box_usage()
 	echo " -d                    debug box"
 	echo " -r                    reset box changes"
 	echo " -u                    user utils: conn, send, pkgs, halt"
+>>>>>>> box2.3
 	echo " -h                    give this help list"
 	echo " -v                    show box version"
 }
@@ -67,7 +89,13 @@ box_usage()
 
 box_init()
 {
+<<<<<<< HEAD
+	printf "Device (default /dev/sdc): "   && read _DEV
+	test -z $_DEV || DEV=$_DEV
+	test -e $DEV  || (echo -e "\nError: no such disk device \`$DEV'" && exit)
+=======
 	_init_user_prompt && test $? -eq 0 || exit 1
+>>>>>>> box2.3
 
 	echo "  Make disk partitioin"
 	sudo wipefs --all --force $BOX_DEVPART
@@ -309,7 +337,7 @@ _util_pkgs()
 {
 	echo "[*] user pkgs"
 	SUBLIME_TEXT_URL=https://download.sublimetext.com
-	SUBLIME_TEXT_TAR=sublime_text_3_build_3211_x32.tar.bz2
+	SUBLIME_TEXT_TAR=sublime_text_3_build_3211_$ARCH.tar.bz2
 	TELEGRAM_URL=https://telegram.org/dl/desktop/linux32
 	TELEGRAM_TAR=telegram.tar.xz
 	PARTICLE_URL=https://github.com/qcockroach/particle/archive/main.zip
@@ -336,12 +364,64 @@ _util_pkgs()
 	make -s init && make -s && make -s install && cd ../..
 	rm -rf $PARTICLE_TAR*
 
+<<<<<<< HEAD
+_user_utils()
+{
+	sshpass -p "server98" ssh server@192.168.0.103
+	test $? -eq 6 && ssh server@192.168.0.103
+}
+
+
+box_clean()
+{
+	echo "[*] clean machine RAM"
+}
+
+
+box_debug()
+{
+	echo "[*] debug box"
+}
+
+
+box_halt()
+{
+	echo '[*] halt machine'
+	sudo shutdown now
+=======
 	printf "sshpass"
 	sudo apt-get update && sudo apt-get install sshpass -y
+>>>>>>> box2.3
 }
 
 
 # Interface
+<<<<<<< HEAD
+while getopts ":iscHdpuhv" opt; do
+case ${opt} in
+	i)
+		box_init ;;
+	s)
+		box_set ;;
+	c)
+		box_clean ;;
+	d)
+		box_debug ;;
+	H)
+		box_halt ;;
+	p)
+		_pkgs ;;
+	u)
+		_user_utils ;;
+	h)
+		_usage ;;
+	v)
+		echo "box (particle) $VERSION" ;;
+   \?)
+		echo "Unknown option character \`-"$OPTARG"\`";;
+esac
+done
+=======
 while getopts ":isdrc:hu:v" opt; do
 	case ${opt} in
 		i)
@@ -369,3 +449,4 @@ done
 if [[ $# -eq 0 ]]; then
 	box_set
 fi
+>>>>>>> box2.3

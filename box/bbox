@@ -1,0 +1,57 @@
+#!/bin/bash
+
+SERVPASS=server98
+
+USER=kali
+USERDIR=/home/$USER/shared
+USERIP=192.168.0.101
+USERPASS=kali
+VERSION=1.0
+
+
+bbox_usage()
+{
+	echo "Usage: bbox [option]"
+	echo "Options:"
+	echo " -r                    run backend box"
+	echo " -s                    send file to user"
+	echo " -h                    give this help list"
+	echo " -v                    show bbox version"
+}
+
+bbox_send()
+{
+	printf "Enter file path: " && read filepath
+
+	if [[ -d $filepath || -f $filepath ]]; then
+		sshpass -p $USERPASS scp -r $filepath $USER@$USERIP:$USERDIR
+	else
+		echo "scp: cannot access '$filepath': No such file or directory" && exit
+	fi
+}
+
+bbox_run()
+{
+	echo "[*] start ssh"
+	sudo sshpass -p $USERPASS servise ssh start
+}
+
+
+while getopts ":rshv" opt; do
+	case ${opt} in
+		r)
+			bbox_run ;;
+		s)
+			bbox_send ;;
+		h)
+			bbox_usage ;;
+		v)
+			echo "bbox (particle) $VERSION" ;;
+		:)
+			echo "Option -$OPTARG requires argument" ;;
+	   \?)
+			echo "Unknown option character \`-$OPTARG'" ;;
+	esac
+	exit
+done
+echo "bbox gets one necessary option. Type \`bbox -h' for more information"
