@@ -51,9 +51,10 @@ box_usage()
 	echo "Usage: box [option]"
 	echo "Options:"
 	echo " -i                    init box environment"
-	echo " -s                    set box environment"
+	echo " -s                    set box environment (by default)"
 	echo " -c                    free box RAM memory"
 	echo " -u                    user utils: conn, send, pkgs, halt"
+	echo " -d                    debug box"
 	echo " -h                    give this help list"
 	echo " -v                    show box version"
 }
@@ -61,29 +62,8 @@ box_usage()
 
 box_init()
 {
-	echo "[*] init disk partition"
-	printf "  Device (default /dev/sdc): "   && read _DEV
-	
-	test -z $_DEV || DEV=$_DEV && test -b $DEV # && echo "OK $DEV" || echo "ERR $DEV"
-
-	if [[ $? -eq 1 ]]; then
-		echo -e "  Error: no such disk device \`$DEV'"
-		exit
-	fi
-
-	printf "  Do you want to format \`box\` disk partition? [y/N] " && read anw
-	if [[ $anw != 'yes' ]]; then
-		echo "Abort" && exit
-	fi
-
-	if [[ -d $BOX_DIR ]]; then
-		echo "  Warning: \`box\` partitioin exists already."
-		printf "  Do you want to format \`box\` partitioin anyway? [y/N] " && read anw
-		if [[ $anw != 'yes' ]]; then
-			echo "Abort"
-			exit
-		fi
-		echo -e "\n  Format disk partitioin"
+	if [[ _init_user_prompt -ne 0 ]]; then
+		exit 1
 	fi
 
 	echo "  Make disk partitioin"
@@ -96,10 +76,124 @@ box_init()
 	sudo chown $USER:$USER -R $BOX_DIR
 	rm -rf $BOX_DIR/*
 
-	echo "  Make system directories"
-	for item in ${BOX_ROOT[@]}; do
-		mkdir -p $item;
+	if [[ `_init_fs_struct 0` -ne 0 ]]; then
+		exit 1
+	fi
+	_init_save_git_credentials
+	_init_save_new_passwd
+	_init_save_box_itself
+}
+
+box_set()
+{
+	echo "[*] set date and time"
+	DATE=$(curl -sI google.com | grep -i date | cut -f 3,4,5,6 -d ' ')
+	printf "    [-] Date and Time: " && sudo date --set="$DATE" && echo
+
+	_set_passwd && _set_datalinks && _set_devs
+	sudo service ssh start
+
+	# update bash session
+	test $SHLVL -le 2 && exec $SHELL
+}
+
+box_utils()
+{
+	NAME=server
+	IP=192.168.0.103
+	PASSWD=server98
+	DIR=/home/server/dgarb/shared
+
+	case $1 in
+		conn )
+			sshpass -p $PASSWD ssh $NAME@$IP
+			test $? -eq 6 && ssh server@$IP
+			;;
+		send )
+			printf "Enter file path: " && read filepath
+
+			if [[ -d $filepath || -f $filepath ]]; then
+				sshpass -p $PASSWD scp -r $filepath server@$IP:$DIR
+			else
+				echo "scp: cannot access '$filepath': No such file or directory" && exit
+			fi
+			;;
+		pkgs )
+			_util_pkgs
+			;;
+		halt )
+			sudo shutdown now
+			;;
+	esac
+	#unset $NAME, $IP, $PASSWD, $DIR
+}
+
+box_clean()
+{
+	echo "[*] clean unnecessary garbage"
+
+	echo "PageCashe, Dentries and inodes"
+	sudo sysctl vm.drop_caches=$1
+
+	echo "Browser metadata"
+}
+
+box_debug()
+{
+	echo "debug"
+	for d in ${BOX_DIRS[@]}; do
+		DEST=${d#"$BOX_HOME/"}
+		#unlink $DEST
 	done
+	for f in ${BOX_FILES[@]}; do
+		DEST=${f#"$BOX_HOME/"}
+		#unlink $DEST
+	done
+}
+
+
+
+
+_init_user_prompt()
+{
+	echo "[*] init disk partition"
+	printf "  Device (default /dev/sdc): "   && read _DEV
+	
+	test -z $_DEV || DEV=$_DEV && test -b $DEV # && echo "OK $DEV" || echo "ERR $DEV"
+
+	if [[ $? -eq 1 ]]; then
+		echo -e "  Error: no such disk device \`$DEV'"
+		return 1
+	fi
+
+	printf "  Do you want to format \`box\` disk partition? [y/N] " && read anw
+	if [[ $anw != 'yes' ]]; then
+		echo "Abort" && return 1
+	fi
+
+	if [[ -d $BOX_DIR ]]; then
+		echo "  Warning: \`box\` partitioin exists already."
+		printf "  Do you want to format \`box\` partitioin anyway? [y/N] " && read anw
+		if [[ $anw != 'yes' ]]; then
+			echo "Abort"
+			return 1
+		fi
+		echo -e "\n  Format disk partitioin"
+	fi
+}
+_init_fs_struct()
+{
+	if [[ $# -eq 0 ]]; then
+		echo "Error: missing argument in _init_fs_struct"
+		return 1
+	fi
+
+	if [[ $1 -eq 0 ]]; then
+		echo "  Make system directories"
+		for item in ${BOX_ROOT[@]}; do
+			mkdir -p $item;
+		done
+	fi
 	echo "  Make user directories"
 	for item in ${BOX_DIRS[@]}; do
 		echo "$item"
@@ -109,31 +203,27 @@ box_init()
 		echo "$item"
 		touch $item
 	done
-
-	_save_git_credentials
-	_save_new_passwd
-	_save_box_itself
+	echo
 }
-
-_save_new_passwd()
+_init_save_new_passwd()
 {
 	printf "Default password: "            && read _DEF_PASSWD
 	printf "New password: "                && read _NEW_PASSWD
 
 	if [[ $_DEF_PASSWD == '' || $_NEW_PASSWD == '' ]]; then
 		echo -e "Error: password is empty\n"
-		_save_new_passwd
+		_init_save_new_passwd
 	fi
 	echo "$_DEF_PASSWD:$_NEW_PASSWD" > $BOX_HOME/.box-credentials
 }
-_save_git_credentials()
+_init_save_git_credentials()
 {
 	echo "    [-] init git credentials"
 	git config --global user.email "hon.mechanic@gmail.com"
 	git config --global user.name "qcockroach"
 	git config --global credential.helper store
 }
-_save_box_itself()
+_init_save_box_itself()
 {
 	echo "    [-] box saving"
 	cp $BOX $BOX_DIR/bin
@@ -141,28 +231,16 @@ _save_box_itself()
 }
 
 
-box_set()
-{
-	echo "[*] set date and time"
-	DATE=$(curl -sI google.com | grep -i date | cut -f 3,4,5,6 -d ' ')
-	printf "    [-] Date and Time: " && sudo date --set="$DATE" && echo
 
-	_set_passwd && _datalinks && _setdevs
-
-	# update bash session
-	test $SHLVL -le 2 && exec $SHELL
-}
-
-# set non-default passwd for more security
 _set_passwd()
 {
+	# set non-default passwd for more security
 	echo "[*] set new password"
 	echo
 }
-
-# make symbolic links
-_datalinks()
+_set_datalinks()
 {
+	# make symbolic links
 	echo "[*] datalinks"
 	echo "    [-] update .bashrc file"
 	echo -e "\n\n# box's change" >> ~/.bashrc
@@ -186,11 +264,10 @@ _datalinks()
 	done
 	echo
 }
-
-# set user's device parameters
-# on keyboard, monitor, mic, stereo, etc
-_setdevs()
+_set_devs()
 {
+	# set user's device parameters
+	# on keyboard, monitor, mic, stereo, etc
 	echo "[*] set user's devices parameters"
 	echo "    [-] keyboard"
 	setxkbmap -option grp:alt_shift_toggle us,ru
@@ -210,8 +287,10 @@ _setdevs()
 	echo
 }
 
+
+
 # download and install user pkgs
-_pkgs()
+_util_pkgs()
 {
 	echo "[*] user pkgs"
 	SUBLIME_TEXT_URL=https://download.sublimetext.com
@@ -247,51 +326,10 @@ _pkgs()
 }
 
 
-_user_utils()
-{
-	NAME=server
-	IP=192.168.0.103
-	PASSWD=server98
-	DIR=/home/server/dgarb/shared
-
-	case $1 in
-		conn )
-			sshpass -p $PASSWD ssh $NAME@$IP
-			test $? -eq 6 && ssh server@$IP
-			;;
-		send )
-			printf "Enter file path: " && read filepath
-
-			if [[ -d $filepath || -f $filepath ]]; then
-				sshpass -p $PASSWD scp -r $filepath server@$IP:$DIR
-			else
-				echo "scp: cannot access '$filepath': No such file or directory" && exit
-			fi
-			;;
-		pkgs )
-			_pkgs
-			;;
-		halt )
-			sudo shutdown now
-			;;
-	esac
-	#unset $NAME, $IP, $PASSWD, $DIR
-}
-
-
-box_clean()
-{
-	echo "[*] clean unnecessary garbage"
-
-	echo "PageCashe, Dentries and inodes"
-	sudo sysctl vm.drop_caches=$1
-
-	echo "Browser metadata"
-}
 
 
 # Interface
-while getopts ":isc:hu:v" opt; do
+while getopts ":isdc:hu:v" opt; do
 	case ${opt} in
 		i)
 			box_init ;;
@@ -299,10 +337,12 @@ while getopts ":isc:hu:v" opt; do
 			box_set ;;
 		c)
 			box_clean $OPTARG ;;
+		d) 
+			box_debug ;;
 		h)
 			box_usage ;;
 		u)
-			_user_utils $OPTARG ;;
+			box_utils $OPTARG ;;
 		v)
 			echo "box (particle) $VERSION" ;;
 		:)
@@ -310,6 +350,7 @@ while getopts ":isc:hu:v" opt; do
 	   \?)
 			echo "Unknown option character \`-$OPTARG'" ;;
 	esac
-	exit
 done
-box_usage
+if [[ $# -eq 0 ]]; then
+	box_set
+fi
