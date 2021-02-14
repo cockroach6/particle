@@ -76,7 +76,7 @@ box_init()
 
 	_init_fs_struct 0 && test $? -eq 0 || exit 1
 
-	_init_save_git_credentials
+	_init_save_git_creden
 	_init_save_new_passwd
 	_init_save_box_itself
 }
@@ -140,11 +140,11 @@ box_debug()
 	echo "debug"
 	for d in ${BOX_DIRS[@]}; do
 		DEST=${d#"$BOX_HOME/"}
-		#unlink $DEST
+		unlink $DEST
 	done
 	for f in ${BOX_FILES[@]}; do
 		DEST=${f#"$BOX_HOME/"}
-		#unlink $DEST
+		unlink $DEST
 	done
 }
 
@@ -211,7 +211,7 @@ _init_save_new_passwd()
 	fi
 	echo "$_DEF_PASSWD:$_NEW_PASSWD" > $BOX_HOME/.box-credentials
 }
-_init_save_git_credentials()
+_init_save_git_creden()
 {
 	echo "    [-] init git credentials"
 	printf "git email  : " && read GIT_EMAIL
@@ -219,7 +219,7 @@ _init_save_git_credentials()
 	printf "git passwd : " && read GIT_PASSWD
 	if [[ $GIT_EMAIL == '' || $GIT_NAME == '' $GIT_PASSWD == '' ]]; then
 		echo "email, name or password is empty"
-		_init_save_git_credentials
+		_init_save_git_creden
 	fi
 	git config --global user.email $GIT_EMAIL
 	git config --global user.name  $GIT_NAME
