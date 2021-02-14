@@ -1,10 +1,13 @@
 #!/bin/bash
 
-ARCH=x32
-DEV=/dev/sdc
-USER=`whoami`
-PASSWD=kali
-BOX_DIR=/media/$USER/box
+# User defined variables
+# Please, make sure you specified them for machine
+# to avoid unnecessary problems
+
+DEV=/dev/sdc                    # where your 'Live USB' mounted. Use fdisk for more info
+USER=`whoami`                   # machine user name
+PASSWD=kali                     # user password. You can change it for more security
+BOX_DIR=/media/$USER/box        # path to your extended partition for saving data
 
 BOX_DEVPART="$DEV"3
 BOX_HOME=$BOX_DIR/home
@@ -13,6 +16,7 @@ BOX_LOCAL=$BOX_HOME/.local
 BOX_PATH=$BOX_DIR/bin:$BOX_LOCAL/bin:\$PATH
 BOX=$(echo $(pwd)$(find . -type f -name 'box') | tr -d '.')
 VERSION=2.3
+ARCH=x32
 
 BOX_ROOT=(
 	$BOX_DIR/bin
@@ -21,20 +25,20 @@ BOX_ROOT=(
 	$BOX_DIR/home
 )
 BOX_DIRS=(
-	$BOX_HOME/Downloads
-	$BOX_HOME/git
-	$BOX_HOME/dump
-	$BOX_HOME/.local
+	$BOX_HOME/Downloads         # to not lose downloaded data after reboot machine
+	$BOX_HOME/git               # rest of git repos
+	$BOX_HOME/dump              # git repo where I save unfinished projects
+	$BOX_HOME/.local            # user programs
 	$BOX_HOME/.ssh
-	$BOX_HOME/.config/chromium
-	$BOX_HOME/xunison
-	$BOX_HOME/shared
+	$BOX_HOME/.config/chromium  # browser data
+	$BOX_HOME/xunison           # projects for job
+	$BOX_HOME/shared            # shared directory with my local server
 )
 BOX_FILES=(
-	$BOX_HOME/.box-credentials
+	$BOX_HOME/.box-credentials  # config file for my box program
 	$BOX_HOME/.git-credentials
 	$BOX_HOME/.gitconfig
-	$BOX_HOME/.wreck
+	$BOX_HOME/.wreck            # config file for my util program
 )
 
 
