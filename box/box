@@ -16,7 +16,6 @@ BOX_LOCAL=$BOX_HOME/.local
 BOX_PATH=$BOX_DIR/bin:$BOX_LOCAL/bin:\$PATH
 BOX=$(echo $(pwd)$(find . -type f -name 'box') | tr -d '.')
 VERSION=2.3
-ARCH=x32
 
 BOX_ROOT=(
 	$BOX_DIR/bin
@@ -25,14 +24,14 @@ BOX_ROOT=(
 	$BOX_DIR/home
 )
 BOX_DIRS=(
-	$BOX_HOME/Downloads         # to not lose downloaded data after reboot machine
 	$BOX_HOME/git               # rest of git repos
 	$BOX_HOME/dump              # git repo where I save unfinished projects
-	$BOX_HOME/.local            # user programs
-	$BOX_HOME/.ssh
-	$BOX_HOME/.config/chromium  # browser data
-	$BOX_HOME/xunison           # projects for job
 	$BOX_HOME/shared            # shared directory with my local server
+	$BOX_HOME/Downloads         # to not lose downloaded data after reboot machine
+#	$BOX_HOME/.ssh
+	$BOX_HOME/.local            # user programs
+#	$BOX_HOME/xunison           # projects for job
+	$BOX_HOME/.config/chromium  # browser data
 )
 BOX_FILES=(
 	$BOX_HOME/.box-credentials  # config file for my box program
@@ -41,15 +40,6 @@ BOX_FILES=(
 	$BOX_HOME/.wreck            # config file for my util program
 )
 
-
-# system part
-if [[ `uname -m` == 'i686' ]]; then
-	ARCH=x32
-else
-	ARCH=x64
-fi
-
-
 box_usage()
 {
 	echo "Usage: box [option]"
@@ -57,8 +47,7 @@ box_usage()
 	echo " -i                    init box environment"
 	echo " -s                    set box environment (by default)"
 	echo " -c                    free box RAM memory"
-	echo " -d                    debug box"
-	echo " -r                    reset box changes"
+	echo " -d                    debug box: reset"
 	echo " -u                    user utils: conn, send, pkgs, halt"
 	echo " -h                    give this help list"
 	echo " -v                    show box version"
@@ -88,15 +77,12 @@ box_init()
 
 box_set()
 {
-	echo "[*] set date and time"
+	printf "Set date and time: "
 	DATE=$(curl -sI google.com | grep -i date | cut -f 3,4,5,6 -d ' ')
-	printf "    [-] Date and Time: " && sudo date --set="$DATE" && echo
+	printf '\n ' && sudo date --set="$DATE" && echo
 
 	_set_passwd && _set_datalinks && _set_devs
-	sudo service ssh start
-
-	# update bash session
-	test $SHLVL -le 2 && exec $SHELL
+	_set_update_session
 }
 
 box_utils()
@@ -105,6 +91,8 @@ box_utils()
 	IP=192.168.0.103
 	PASSWD=server98
 	DIR=/home/server/dgarb/shared
+
+	(sudo systemctl | grep -q ssh.service) || sudo service ssh start
 
 	case $1 in
 		conn )
@@ -117,13 +105,14 @@ box_utils()
 			if [[ -d $filepath || -f $filepath ]]; then
 				sshpass -p $PASSWD scp -r $filepath server@$IP:$DIR
 			else
-				echo "scp: cannot access '$filepath': No such file or directory" && exit
+				echo "scp: cannot access '$filepath': No such file or directory" && exists
 			fi
 			;;
 		pkgs )
 			_util_pkgs
 			;;
 		halt )
+			_debug_reset
 			sudo shutdown now
 			;;
 	esac
@@ -132,39 +121,27 @@ box_utils()
 
 box_clean()
 {
-	echo "[*] clean unnecessary garbage"
+	echo "Clean unnecessary garbage"
 
-	echo "PageCashe, Dentries and inodes"
+	echo " page cache, dentries and inodes"
 	sudo sysctl vm.drop_caches=$1
 
-	echo "Browser metadata"
+	echo " browser metadata"
 }
 
 box_debug()
 {
-	echo "[*] debug"
+	echo "Debug"
+	case $1 in 
+		reset )
+			_debug_reset ;;
+	esac
 }
-
-box_reset()
-{
-	echo "[*] reset"
-	for d in ${BOX_DIRS[@]}; do
-		DEST=${d#"$BOX_HOME/"}
-		echo $DEST
-		unlink $DEST
-	done
-	for f in ${BOX_FILES[@]}; do
-		DEST=${f#"$BOX_HOME/"}
-		echo $DEST
-		unlink $DEST
-	done
-}
-
 
 
 _init_user_prompt()
 {
-	echo "[*] init disk partition"
+	echo "Init disk partition"
 	printf "  Device (default /dev/sdc): "   && read _DEV
 	
 	test -z $_DEV || DEV=$_DEV && test -b $DEV # && echo "OK $DEV" || echo "ERR $DEV"
@@ -188,6 +165,7 @@ _init_user_prompt()
 		fi
 		echo -e "\n  Format disk partitioin"
 	fi
+	return 0;
 }
 _init_fs_struct()
 {
@@ -213,8 +191,8 @@ _init_fs_struct()
 }
 _init_save_new_passwd()
 {
-	printf "Default password: "            && read _DEF_PASSWD
-	printf "New password: "                && read _NEW_PASSWD
+	printf "Default password: " && read _DEF_PASSWD
+	printf "New password: "     && read _NEW_PASSWD
 
 	if [[ $_DEF_PASSWD == '' || $_NEW_PASSWD == '' ]]; then
 		echo -e "Error: password is empty\n"
@@ -224,12 +202,12 @@ _init_save_new_passwd()
 }
 _init_save_git_creden()
 {
-	echo "    [-] init git credentials"
-	printf "git email  : " && read GIT_EMAIL
-	printf "git name   : " && read GIT_NAME
-	printf "git passwd : " && read GIT_PASSWD
+	echo "Init git credentials"
+	printf " git email  : " && read GIT_EMAIL
+	printf " git name   : " && read GIT_NAME
+	printf " git passwd : " && read GIT_PASSWD
 	if [[ $GIT_EMAIL == '' || $GIT_NAME == '' || $GIT_PASSWD == '' ]]; then
-		echo "email, name or password is empty"
+		echo " email, name or password is empty"
 		_init_save_git_creden
 	fi
 	git config --global user.email $GIT_EMAIL
@@ -250,18 +228,13 @@ _init_save_box_itself()
 _set_passwd()
 {
 	# set non-default passwd for more security
-	echo "[*] set new password"
-	echo
+	echo "Set new password"
+	echo -e "Warning: default password is used\n"
 }
 _set_datalinks()
 {
 	# make symbolic links
-	echo "[*] datalinks"
-	echo "    [-] update .bashrc file"
-	echo -e "\n\n# box's change" >> ~/.bashrc
-	echo "PATH=$BOX_PATH && export PATH" >> ~/.bashrc
-	test -e $BOX_LOCAL/bin/wd.sh && echo "source $BOX_LOCAL/bin/wd.sh" >> ~/.bashrc
-	sudo cp ~/.bashrc /root
+	echo "Make links to files"
 
 	# delete some dirs
 	rm -rf $HOME/.local
@@ -270,12 +243,12 @@ _set_datalinks()
 	for d in ${BOX_DIRS[@]}; do
 		DEST=${d#"$BOX_HOME/"}
 		test -e $HOME/$DEST || ln -s $BOX_HOME/$DEST $HOME/$DEST
-		echo "    [@] $DEST"
+		echo " $DEST"
 	done
 	for f in ${BOX_FILES[@]}; do
 		DEST=${f#"$BOX_HOME/"}
 		test -e $HOME/$DEST || ln -s $BOX_HOME/$DEST $HOME/$DEST
-		echo "    [@] $DEST"
+		echo " $DEST"
 	done
 	echo
 }
@@ -283,11 +256,11 @@ _set_devs()
 {
 	# set user's device parameters
 	# on keyboard, monitor, mic, stereo, etc
-	echo "[*] set user's devices parameters"
-	echo "    [-] keyboard"
+	echo "Set devices parameters"
+	echo " keyboard"
 	setxkbmap -option grp:alt_shift_toggle us,ru
 
-	echo "    [-] monitor"
+	echo " monitor"
 	xset s off # don't activate screensaver
 	xset -dpms # disable DPMS (Energy Star) features.
 	#xset s noblank # don't blank the video device
@@ -296,18 +269,34 @@ _set_devs()
 		xrandr --output LVDS-1 --off
 	fi
 
-	echo "    [-] stereo"
+	echo " stereo"
 	pactl set-sink-mute   alsa_output.pci-0000_00_1b.0.analog-stereo 0
 	pactl set-sink-volume alsa_output.pci-0000_00_1b.0.analog-stereo 70%
 	echo
 }
+_set_update_session()
+{
+	# have to make some checking before update .bashrc
+	# and system at all (deamons, .configs, etc)
+	echo "Update session"
+	cat ~/.bashrc | grep -q "# box part"
+	if [[ $? -eq 0 ]]; then
+		echo " terminal is already updated"
+		return 0;
+	fi
+	echo " terminal"
+	echo -e "\n# box part"               >> ~/.bashrc
+	echo "PATH=$BOX_PATH && export PATH" >> ~/.bashrc
+	echo "source $BOX_DIR/bin/box.sh"    >> ~/.bashrc
+	sudo cp ~/.bashrc /root
+
+	test $SHLVL -le 2 && exec $SHELL
+}
 
 
-
-# download and install user pkgs
 _util_pkgs()
 {
-	echo "[*] user pkgs"
+	echo "Install user packages"
 	SUBLIME_TEXT_URL=https://download.sublimetext.com
 	SUBLIME_TEXT_TAR=sublime_text_3_build_3211_x32.tar.bz2
 	TELEGRAM_URL=https://telegram.org/dl/desktop/linux32
@@ -315,21 +304,14 @@ _util_pkgs()
 	PARTICLE_URL=https://github.com/qcockroach/particle/archive/main.zip
 	PARTICLE_TAR=particle-main
 
-
-	if [[ $ARCH != 'x32' ]]; then
-		SUBLIME_TEXT_TAR=sublime_text_3_build_3211_x64.tar.bz2
-		TELEGRAM_URL=https://telegram.org/dl/desktop/linux
-	fi
-
 	mkdir -p $BOX_LOCAL/bin
-
 	wget -q --show-progress $SUBLIME_TEXT_URL/$SUBLIME_TEXT_TAR --output-document $SUBLIME_TEXT_TAR 
 	tar -xf $SUBLIME_TEXT_TAR && rm -rf $SUBLIME_TEXT_TAR
-	(mv sublime_text_3/* $BOX_LOCAL/bin || echo "app's already installed") && rm -rf sublime_text_3
+	(mv sublime_text_3/* $BOX_LOCAL/bin || echo "package is already installed") && rm -rf sublime_text_3
 
 	wget -q --show-progress $TELEGRAM_URL --output-document $TELEGRAM_TAR
 	tar -xf $TELEGRAM_TAR && rm -rf $TELEGRAM_TAR
-	(mv Telegram/* $BOX_LOCAL/bin || echo "app's already installed") && rm -rf Telegram
+	(mv Telegram/* $BOX_LOCAL/bin || echo "package is already installed") && rm -rf Telegram
 
 	wget -q --show-progress $PARTICLE_URL --output-document $PARTICLE_TAR.zip
 	unzip -q $PARTICLE_TAR && cd $PARTICLE_TAR/wd
@@ -341,8 +323,21 @@ _util_pkgs()
 }
 
 
+_debug_reset()
+{
+	for d in ${BOX_DIRS[@]}; do
+		DEST=${d#"$BOX_HOME/"}
+		test -L $DEST && unlink $DEST
+	done
+	for f in ${BOX_FILES[@]}; do
+		DEST=${f#"$BOX_HOME/"}
+		test -L $DEST && unlink $DEST
+	done
+}
+
+
 # Interface
-while getopts ":isdrc:hu:v" opt; do
+while getopts ":isd:c:hu:v" opt; do
 	case ${opt} in
 		i)
 			box_init ;;
@@ -350,10 +345,8 @@ while getopts ":isdrc:hu:v" opt; do
 			box_set ;;
 		c)
 			box_clean $OPTARG ;;
-		r)
-			box_reset ;;
-		d) 
-			box_debug ;;
+		d)
+			box_debug $OPTARG ;;
 		h)
 			box_usage ;;
 		u)
