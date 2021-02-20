@@ -105,7 +105,9 @@ box_utils()
 			if [[ -d $filepath || -f $filepath ]]; then
 				sshpass -p $PASSWD scp -r $filepath server@$IP:$DIR
 			else
-				echo "scp: cannot access '$filepath': No such file or directory" && exists
+				printf "scp: cannot access \`$filepath': "
+				printf "No such file or directory\n"
+				exit
 			fi
 			;;
 		pkgs )
@@ -116,7 +118,6 @@ box_utils()
 			sudo shutdown now
 			;;
 	esac
-	#unset $NAME, $IP, $PASSWD, $DIR
 }
 
 box_clean()
@@ -285,9 +286,10 @@ _set_update_session()
 		return 0;
 	fi
 	echo " terminal"
-	echo -e "\n# box part"               >> ~/.bashrc
-	echo "PATH=$BOX_PATH && export PATH" >> ~/.bashrc
-	echo "source $BOX_DIR/bin/box.sh"    >> ~/.bashrc
+	echo -e "\n# box part"             >> ~/.bashrc
+	echo "PATH=$BOX_PATH"              >> ~/.bashrc
+	echo "export PATH"                 >> ~/.bashrc
+	echo "source $BOX_DIR/bin/box.sh"  >> ~/.bashrc
 	sudo cp ~/.bashrc /root
 
 	test $SHLVL -le 2 && exec $SHELL
