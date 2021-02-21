@@ -28,10 +28,10 @@ BOX_DIRS=(
     $BOX_HOME/dump              # git repo where I save unfinished projects
     $BOX_HOME/shared            # shared directory with my local server
     $BOX_HOME/Downloads         # to not lose downloaded data after reboot machine
-#   $BOX_HOME/.ssh
     $BOX_HOME/.local            # user programs
-#   $BOX_HOME/xunison           # projects for job
     $BOX_HOME/.config/chromium  # browser data
+#   $BOX_HOME/.ssh              # ssh keys
+#   $BOX_HOME/xunison           # projects for job
 )
 BOX_FILES=(
     $BOX_HOME/.box-credentials  # config file for my box program
@@ -45,7 +45,7 @@ box_usage()
     echo "Usage: box [option]"
     echo "Options:"
     echo " -i                    init box environment"
-    echo " -s                    set box environment (by default)"
+    echo " -s                    set box environment (default)"
     echo " -c                    free box RAM memory"
     echo " -d                    debug box: reset"
     echo " -u                    user utils: conn, send, pkgs, halt"
@@ -81,7 +81,9 @@ box_set()
     DATE=$(curl -sI google.com | grep -i date | cut -f 3,4,5,6 -d ' ')
     printf '\n ' && sudo date --set="$DATE" && echo
 
-    _set_passwd && _set_datalinks && _set_devs
+    _set_devs
+    _set_passwd
+    _set_datalinks
     _set_update_session
 }
 
@@ -255,8 +257,6 @@ _set_datalinks()
 }
 _set_devs()
 {
-    # set user's device parameters
-    # on keyboard, monitor, mic, stereo, etc
     echo "Set devices parameters"
     echo " keyboard"
     setxkbmap -option grp:alt_shift_toggle us,ru
@@ -280,8 +280,7 @@ _set_update_session()
     # have to make some checking before update .bashrc
     # and system at all (deamons, .configs, etc)
     echo "Update session"
-    cat ~/.bashrc | grep -q "# box part"
-    if [[ $? -eq 0 ]]; then
+    if [[ $(grep  "# box part" ~/.bashrc) != '' ]]; then
         echo " terminal is already updated"
         return 0;
     fi
@@ -291,8 +290,7 @@ _set_update_session()
     echo "export PATH"                 >> ~/.bashrc
     echo "source $BOX_DIR/bin/box.sh"  >> ~/.bashrc
     sudo cp ~/.bashrc /root
-
-    test $SHLVL -le 2 && exec $SHELL
+    exec $SHELL
 }
 
 
@@ -321,19 +319,24 @@ _util_pkgs()
     rm -rf $PARTICLE_TAR*
 
     printf "sshpass"
-    sudo apt-get update && sudo apt-get install sshpass -y
+    sudo apt-get update
+    sudo apt-get install sshpass -y
+    echo
 }
 
 
 _debug_reset()
 {
+    echo "Unset symbolic links"
     for d in ${BOX_DIRS[@]}; do
         DEST=${d#"$BOX_HOME/"}
         test -L $DEST && unlink $DEST
+        echo " $DEST"
     done
     for f in ${BOX_FILES[@]}; do
         DEST=${f#"$BOX_HOME/"}
         test -L $DEST && unlink $DEST
+        echo " $DEST"
     done
 }
 
