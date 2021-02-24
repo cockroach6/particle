@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# User defined variables
-# Please, make sure you specified them for machine
-# to avoid unnecessary problems
-
 DEV=/dev/sdc                    # where your 'Live USB' mounted. Use fdisk for more info
 USER=`whoami`                   # machine user name
 PASSWD=kali                     # user password. You can change it for more security
@@ -14,7 +10,6 @@ BOX_HOME=$BOX_DIR/home
 BOX_BRW_DIR=$BOX_DIR/home/.config/chromium
 BOX_LOCAL=$BOX_HOME/.local
 BOX_PATH=$BOX_DIR/bin:$BOX_LOCAL/bin:\$PATH
-BOX=$(echo $(pwd)$(find . -type f -name 'box') | tr -d '.')
 VERSION=2.3
 
 BOX_ROOT=(
@@ -31,7 +26,6 @@ BOX_DIRS=(
     $BOX_HOME/.local            # user programs
     $BOX_HOME/.config/chromium  # browser data
 #   $BOX_HOME/.ssh              # ssh keys
-#   $BOX_HOME/xunison           # projects for job
 )
 BOX_FILES=(
     $BOX_HOME/.box-credentials  # config file for my box program
@@ -216,16 +210,16 @@ _init_save_git_creden()
     git config --global user.email $GIT_EMAIL
     git config --global user.name  $GIT_NAME
     git config --global credential.helper store
-    echo -e "https://$GIT_NAME:$GIT_PASSWD@github.com\n" > ${BOX_FILES[1]};
+    echo "https://$GIT_NAME:$GIT_PASSWD@github.com" > ${BOX_FILES[1]};
     echo
 }
 _init_save_box_itself()
 {
+    BOX=$(find . -type f -name box | head -n 1)
     echo "    [-] box saving"
-    cp $BOX $BOX_DIR/bin
+    cp $BOX "$BOX".sh $BOX_DIR/bin
     echo
 }
-
 
 
 _set_passwd()
@@ -330,13 +324,13 @@ _debug_reset()
     echo "Unset symbolic links"
     for d in ${BOX_DIRS[@]}; do
         DEST=${d#"$BOX_HOME/"}
-        test -L $DEST && unlink $DEST
-        echo " $DEST"
+        test -L $DEST && unlink ~/$DEST
+        echo " ~/$DEST"
     done
     for f in ${BOX_FILES[@]}; do
         DEST=${f#"$BOX_HOME/"}
-        test -L $DEST && unlink $DEST
-        echo " $DEST"
+        test -L $DEST && unlink ~/$DEST
+        echo " ~/$DEST"
     done
 }
 
