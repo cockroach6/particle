@@ -11,14 +11,14 @@
        while copying inself: function init() in `#backup of itself`
 7)+  If file/dir doesn't exist then script causes error while it does symlink.
 8)+  Have to change datalink() structure. Add all symlink files into array.
-9)   Has no prompt which provides information to change username, memory path, 
+9)+  Has no prompt which provides information to change username, memory path, 
        device name before `init`
 10)  Change structure of `pkg` function to handle both x32 and x64 architecture.
 11)+ Correctly upload extented PATH.
-12)  Correctly edit .bashrc file to prevent its content from garbage.
+12)+ Correctly edit .bashrc file to prevent its content from garbage.
 13)  Fix `cleanup` function for deleting garbage files collected during programs
        execution: browser, bashrc, user programs, etc.
 14)  Write `unset' function for debuging.
-15)  When first time init disk `box` can't make correct .local and .local/bin,
+15)+ When first time init disk `box` can't make correct .local and .local/bin,
        .local/shared, etc dir. It conflists with function `datalinks`.
-16)  Write correct and meaningfull README.md
+16)+ Write correct and meaningfull README.md
