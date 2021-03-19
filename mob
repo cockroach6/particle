@@ -5,8 +5,9 @@ BOX_DIR=/media/kali/box
 lazypush()
 {
 	test -e $BOX_DIR/bin/box && cat $BOX_DIR/bin/box > box/box 
-	git add .
+	git add box
 
+	echo "save box util"
 	printf "commit: "
 	read comm
 	git commit -m "$comm"

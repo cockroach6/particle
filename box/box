@@ -1,16 +1,17 @@
 #!/bin/bash
 
+
 DEV=/dev/sdc                    # where your 'Live USB' mounted. Use fdisk for more info
 USER=`whoami`                   # machine user name
 PASSWD=kali                     # user password. You can change it for more security
 BOX_DIR=/media/$USER/box        # path to your extended partition for saving data
 
 BOX_DEVPART="$DEV"3
-BOX_HOME=$BOX_DIR/home
+BOX_HOME=$BOX_DIR/home/kali
 BOX_BRW_DIR=$BOX_DIR/home/.config/chromium
 BOX_LOCAL=$BOX_HOME/.local
 BOX_PATH=$BOX_DIR/bin:$BOX_LOCAL/bin:\$PATH
-VERSION=2.3
+VERSION=2.4
 
 BOX_ROOT=(
     $BOX_DIR/bin
@@ -19,13 +20,17 @@ BOX_ROOT=(
     $BOX_DIR/home
 )
 BOX_DIRS=(
+    # user dirs
+    #$BOX_DIR/home/virm
+
     $BOX_HOME/git               # rest of git repos
     $BOX_HOME/dump              # git repo where I save unfinished projects
     $BOX_HOME/shared            # shared directory with my local server
     $BOX_HOME/Downloads         # to not lose downloaded data after reboot machine
+    $BOX_HOME/priv              # my private zone for credentials, data, etc
     $BOX_HOME/.local            # user programs
+    $BOX_HOME/.ssh              # ssh keys
     $BOX_HOME/.config/chromium  # browser data
-#   $BOX_HOME/.ssh              # ssh keys
 )
 BOX_FILES=(
     $BOX_HOME/.box-credentials  # config file for my box program
@@ -34,19 +39,68 @@ BOX_FILES=(
     $BOX_HOME/.wreck            # config file for my util program
 )
 
+
+_box_usage_cmd()
+{
+    CMD=$1
+    case $CMD in
+        init )
+            echo "usage: box init"
+            echo ""
+            ;;
+        set )
+            echo "usage: box set"
+            echo ""
+            ;;
+        free)
+            echo "usage: box free [option]"
+            echo "    -1                    cleaning degree 1"
+            echo "    -2                    cleaning degree 2"
+            echo "    -3                    cleaning degree 3"
+            ;;
+        package)
+            echo "usage: box package [option]"
+            echo "    -d               download package from internet"
+            echo "    -b               back up package from system into box env"
+            echo "    -c               clean up package from box env"
+            echo "    -r               restore package into system using copy or link"
+            ;;
+        util)
+            echo "usage: box util [option]"
+            echo "    -c               connect to local server"
+            echo "    -s               send file to local server"
+            echo "    -h               unset and unlink files and then halt machine"
+            ;;
+        browser)
+            echo"     -r               restore saved credentials from archive"
+            echo"     -c               delete saved credentials"
+            ;;
+    esac
+}
+
+
 box_usage()
 {
-    echo "Usage: box [option]"
+    if [[ $1 != '' ]]; then
+        _box_usage_cmd $1
+    fi
+
+    echo "Usage: box [-v] [-h] <command> [<args>]"
+    echo -e "These are common box command used in various situations: \n"
+    echo "set or init box environment"
+    echo "   init                initialize box environment"
+    echo "   set                 set changes on machine choosen by user"
+    echo ""
+    echo "regularly used command during work (box's utils)"
+    echo "   free                free RAM memory using degree of cleaning"
+    echo "   package             download, install, uninstall packages"
+    echo "   util                util useful for me"
+    echo "   browser             tools for backup, adjust browser's meta data"
+    echo ""
     echo "Options:"
-    echo " -i                    init box environment"
-    echo " -s                    set box environment (default)"
-    echo " -c                    free box RAM memory"
-    echo " -d                    debug box: reset"
-    echo " -u                    user utils: conn, send, pkgs, halt"
     echo " -h                    give this help list"
     echo " -v                    show box version"
 }
-
 
 box_init()
 {
@@ -84,7 +138,7 @@ box_set()
 box_utils()
 {
     NAME=server
-    IP=192.168.0.103
+    IP=192.168.0.104
     PASSWD=server98
     DIR=/home/server/dgarb/shared
 
@@ -106,14 +160,30 @@ box_utils()
                 exit
             fi
             ;;
-        pkgs )
-            _util_pkgs
-            ;;
         halt )
+			# kill user apps before unlink
+			killall chromium sublime_text
             _debug_reset
-            sudo shutdown now
+            sleep 8
+            sudo shutdown -h now
             ;;
     esac
+}
+
+box_browser()
+{
+    DEST=.config/chromium
+    
+    echo "browser"
+    if [[ ! -d ~/priv/creden ]]; then
+        echo "Download credentials from Mega"
+        exit 1
+    fi
+    rm -rf $BOX_HOME/$DEST 
+    rm -rf ~/$DEST            # symbolic link
+    cp -rf ~/priv/creden/$DEST $BOX_HOME/.config
+    ln -s $BOX_HOME/$DEST $HOME/$DEST
+    echo " $DEST"
 }
 
 box_clean()
@@ -132,6 +202,21 @@ box_debug()
     case $1 in 
         reset )
             _debug_reset ;;
+    esac
+}
+
+box_packages()
+{
+    echo "Deal with packages"
+    case $1 in
+        download )
+            _package_download $1 ;;
+        backup )
+            _package_backup   $1 ;;
+        cleanup )
+            _package_cleanup  $1 ;;
+        restore )
+            _package_restore  $1 ;;
     esac
 }
 
@@ -164,6 +249,7 @@ _init_user_prompt()
     fi
     return 0;
 }
+
 _init_fs_struct()
 {
     if [[ $# -eq 0 ]]; then
@@ -186,6 +272,7 @@ _init_fs_struct()
     done
     echo
 }
+
 _init_save_new_passwd()
 {
     printf "Default password: " && read _DEF_PASSWD
@@ -197,6 +284,7 @@ _init_save_new_passwd()
     fi
     echo "$_DEF_PASSWD:$_NEW_PASSWD" > $BOX_HOME/.box-credentials
 }
+
 _init_save_git_creden()
 {
     echo "Init git credentials"
@@ -213,6 +301,7 @@ _init_save_git_creden()
     echo "https://$GIT_NAME:$GIT_PASSWD@github.com" > ${BOX_FILES[1]};
     echo
 }
+
 _init_save_box_itself()
 {
     BOX=$(find . -type f -name box | head -n 1)
@@ -228,6 +317,7 @@ _set_passwd()
     echo "Set new password"
     echo -e "Warning: default password is used\n"
 }
+
 _set_datalinks()
 {
     # make symbolic links
@@ -249,6 +339,7 @@ _set_datalinks()
     done
     echo
 }
+
 _set_devs()
 {
     echo "Set devices parameters"
@@ -269,6 +360,7 @@ _set_devs()
     pactl set-sink-volume alsa_output.pci-0000_00_1b.0.analog-stereo 70%
     echo
 }
+
 _set_update_session()
 {
     # have to make some checking before update .bashrc
@@ -288,7 +380,45 @@ _set_update_session()
 }
 
 
-_util_pkgs()
+_debug_reset()
+{
+    echo "Unset symbolic links"
+    for d in ${BOX_DIRS[@]}; do
+        DEST=${d#"$BOX_HOME/"}
+        test -L $DEST && unlink ~/$DEST
+        echo " ~/$DEST"
+    done
+    for f in ${BOX_FILES[@]}; do
+        DEST=${f#"$BOX_HOME/"}
+        test -L $DEST && unlink ~/$DEST
+        echo " ~/$DEST"
+    done
+}
+
+
+# 2 - package exists on system
+# 1 - package does not exist on box env
+# 0 - package exists on both side
+_package_check()
+{
+    PKG=$1
+    if [[ ! -f /usr/bin/$PKG ]]; then
+        return 2
+    fi
+
+    # check if we have directory for backed up packages
+    if [[ ! -d $BOX_DIR/usr/bin ]]; then
+        mkdir -p $BOX_DIR/usr/bin
+    fi
+
+    # check if package has already saved
+    if [[ ! -f $BOX_DIR/usr/bin/$PKG ]]; then
+        return 1
+    fi
+    return 0
+}
+
+_package_download()
 {
     echo "Install user packages"
     SUBLIME_TEXT_URL=https://download.sublimetext.com
@@ -315,49 +445,177 @@ _util_pkgs()
     printf "sshpass"
     sudo apt-get update
     sudo apt-get install sshpass -y
+    sudo cp /usr/bin/sshpass $BOX_DIR/bin
     echo
 }
 
-
-_debug_reset()
+_package_backup()
 {
-    echo "Unset symbolic links"
-    for d in ${BOX_DIRS[@]}; do
-        DEST=${d#"$BOX_HOME/"}
-        test -L $DEST && unlink ~/$DEST
-        echo " ~/$DEST"
+    PKG=$1
+    echo "Package name: $PKG"
+
+    _package_check $PKG
+    local ret=$?
+    if [[ $ret -eq 2 ]]; then
+        echo "Error: package '$PKG' does not exist on system"
+        exit 1
+    elif [[ $ret -eq 0 ]]; then
+        echo "Warning: package '$PKG' has already saved: $ret"
+        exit 0
+    fi
+
+    # save logs for link at next time
+    echo $(whereis $PKG) >> $BOX_DIR/etc/box/pkgconfig
+
+    for i in $(whereis $PKG | tr -s ': ' ' ' | cut -f 2- -d ' '); do
+        echo $i
+        mkdir -p $BOX_DIR/$(dirname $i)
+        sudo cp -r $i $BOX_DIR/$(dirname $i)
     done
-    for f in ${BOX_FILES[@]}; do
-        DEST=${f#"$BOX_HOME/"}
-        test -L $DEST && unlink ~/$DEST
-        echo " ~/$DEST"
+    echo "Package '$PKG' saved on box"
+
+    # make 'kali' user owner of every saved files
+    sudo chown -R kali:kali $BOX_DIR/usr
+}
+
+_package_cleanup()
+{
+    PKG=$1
+    echo "Package name: $PKG"
+
+    _package_check $PKG
+    ret=$?
+    if [[ $ret -eq 2 ]]; then
+        echo "Error: package '$PKG' does not exist on system"
+        exit 1
+    elif [[ $ret -eq 1 ]]; then
+        echo "Warning: package '$PKG' has already cleaned"
+        exit 0
+    fi
+
+    echo "Clean up previosly saved package '$PKG'"
+    for i in $(whereis $PKG | tr -s ': ' ' ' | cut -f 2- -d ' '); do
+        echo $i
+        rm -rf $BOX_DIR$i
+    done
+
+    # delete package name from pkgconfig file too
+    cat $BOX_DIR/etc/box/pkgconfig | grep -v "$PKG:" > $BOX_DIR/etc/box/.tmp
+    cat $BOX_DIR/etc/box/.tmp > $BOX_DIR/etc/box/pkgconfig
+}
+
+# 0 - link (by default)
+# 1 - copy to destination
+_package_restore()
+{
+    PKG=$1
+    echo "Package name: $PKG"
+
+    _package_check $PKG
+    ret=$?
+    if [[ $ret -eq 0 ]]; then
+        echo "Warning: package '$PKG' is already on system"
+        exit 0
+    elif [[ $ret -eq 1 ]]; then
+        echo "Warning: package '$PKG' does not exists on box env"
+        exit 0
+    fi
+
+    items=($(cat $BOX_DIR/etc/box/pkgconfig |  grep $PKG | tr -s ': ' ' ' | cut -f 2- -d ' '))
+    for i in ${items[@]}; do
+        echo $i
+        sudo cp -rf $BOX_DIR$i $i
     done
 }
 
 
+
+
+case $1 in
+    init)
+        shift 1
+        box_init
+    ;;
+    set)
+        shift 1
+        box_set 
+    ;;
+    pkg)
+        shift 1
+        while getopts ":db:c:r:" opt; do
+            case ${opt} in
+            d)
+                _package_download
+                ;;
+            b)
+                _package_backup $OPTARG
+                ;;
+            c)
+                _package_cleanup $OPTARG
+                ;;
+            r)
+                _package_restore $OPTARG
+                ;;
+            esac
+        done
+        ;;
+    util)
+        shift 1
+        while getopts ":c:s:h:" opt; do
+            case ${opt} in
+            c)
+                box_utils $OPTARG
+                ;;
+            s)
+                box_utils $OPTARG
+                ;;
+            h)
+                box_utils $OPTARG
+                ;;
+            esac
+        done
+        ;;
+    -h)
+        box_usage
+        ;;
+    -v)
+        echo "box version $VERSION"
+        ;;
+esac
+
+
 # Interface
-while getopts ":isd:c:hu:v" opt; do
-    case ${opt} in
-        i)
-            box_init ;;
-        s)
-            box_set ;;
-        c)
-            box_clean $OPTARG ;;
-        d)
-            box_debug $OPTARG ;;
-        h)
-            box_usage ;;
-        u)
-            box_utils $OPTARG ;;
-        v)
-            echo "box (particle) $VERSION" ;;
-        :)
-            echo "Option -$OPTARG requires argument. Use option \`-h' for more information" ;;
-       \?)
-            echo "Unknown option character \`-$OPTARG'" ;;
-    esac
-done
-if [[ $# -eq 0 ]]; then
-    box_set
-fi
+# while getopts ":isp:d:c:h:b:u:v" opt; do
+#     case ${opt} in
+#         i)
+#             box_init ;;
+#         s)
+#             box_set ;;
+#         c)
+#             box_clean $OPTARG ;;
+#         p)
+#             box_packages $OPTARG ;;
+#         d)
+#             box_debug $OPTARG ;;
+#         h)
+#             box_usage $OPTARG ;;
+#         u)
+#             box_utils $OPTARG ;;
+#         b)
+#             box_browser $OPTARG ;;
+#         v)
+#             echo "box (particle) $VERSION" ;;
+#         :)
+#             if [[ $OPTARG == 'h' ]]; then
+#                 box_usage $OPTARG
+#             else
+#                 echo "Option -$OPTARG requires argument. Use option \`-h' for more information"
+#             fi
+#             ;; 
+#        \?)
+#             echo "Unknown option character \`-$OPTARG'" ;;
+#     esac
+# done
+# if [[ $# -eq 0 ]]; then
+#     box_set
+# fi

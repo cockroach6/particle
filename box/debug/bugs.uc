@@ -22,3 +22,5 @@
 15)+ When first time init disk `box` can't make correct .local and .local/bin,
        .local/shared, etc dir. It conflists with function `datalinks`.
 16)+ Write correct and meaningfull README.md
+17)  Package backup does not save all files related to package like files
+       /etc directory. And does not resolve symbolic files properly.
