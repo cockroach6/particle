@@ -1,13 +1,12 @@
 #!/bin/bash
 
-
 DEV=/dev/sdc                    # where your 'Live USB' mounted. Use fdisk for more info
 USER=`whoami`                   # machine user name
 PASSWD=kali                     # user password. You can change it for more security
-BOX_DIR=/media/$USER/box        # path to your extended partition for saving data
+BOX_DIR=/media/$USER/box        # path to additional partition for saving data
 
 BOX_DEVPART="$DEV"3
-BOX_HOME=$BOX_DIR/home/kali
+BOX_HOME=$BOX_DIR/home/$USER
 BOX_BRW_DIR=$BOX_DIR/home/.config/chromium
 BOX_LOCAL=$BOX_HOME/.local
 BOX_PATH=$BOX_DIR/bin:$BOX_LOCAL/bin:\$PATH
@@ -21,16 +20,19 @@ BOX_ROOT=(
 )
 BOX_DIRS=(
     # user dirs
-    #$BOX_DIR/home/virm
-
-    $BOX_HOME/git               # rest of git repos
-    $BOX_HOME/dump              # git repo where I save unfinished projects
-    $BOX_HOME/shared            # shared directory with my local server
-    $BOX_HOME/Downloads         # to not lose downloaded data after reboot machine
-    $BOX_HOME/priv              # my private zone for credentials, data, etc
-    $BOX_HOME/.local            # user programs
-    $BOX_HOME/.ssh              # ssh keys
-    $BOX_HOME/.config/chromium  # browser data
+    $BOX_HOME/cockroach               # my private place
+    $BOX_HOME/git                     # rest of git repos
+    $BOX_HOME/dump                    # git repo where I save unfinished projects
+    $BOX_HOME/books                   #
+    $BOX_HOME/shared                  # shared directory with my local server
+    $BOX_HOME/Downloads               # to not lose downloaded data after reboot machine
+    $BOX_HOME/priv                    # my private zone for credentials, data, etc
+    $BOX_HOME/garbage                 # to store garbage files and peice of code
+    $BOX_HOME/.local                  # user programs
+    $BOX_HOME/.ssh                    # ssh keys
+    $BOX_HOME/.config/chromium        # browser metadata
+    $BOX_HOME/.config/sublime-text-3  # IDE metadata
+    $BOX_HOME/.anydesk
 )
 BOX_FILES=(
     $BOX_HOME/.box-credentials  # config file for my box program
@@ -38,6 +40,9 @@ BOX_FILES=(
     $BOX_HOME/.gitconfig
     $BOX_HOME/.wreck            # config file for my util program
 )
+
+ARGC=$#
+
 
 
 _box_usage_cmd()
@@ -54,12 +59,12 @@ _box_usage_cmd()
             ;;
         free)
             echo "usage: box free [option]"
-            echo "    -1                    cleaning degree 1"
-            echo "    -2                    cleaning degree 2"
-            echo "    -3                    cleaning degree 3"
+            echo "     1                    cleaning degree 1"
+            echo "     2                    cleaning degree 2"
+            #echo "     3                    cleaning degree 3"
             ;;
-        package)
-            echo "usage: box package [option]"
+        pkg)
+            echo "usage: box pkg [option]"
             echo "    -d               download package from internet"
             echo "    -b               back up package from system into box env"
             echo "    -c               clean up package from box env"
@@ -69,12 +74,15 @@ _box_usage_cmd()
             echo "usage: box util [option]"
             echo "    -c               connect to local server"
             echo "    -s               send file to local server"
-            echo "    -h               unset and unlink files and then halt machine"
+            #echo "    -H               unset and unlink files and then halt machine"
             ;;
         browser)
-            echo"     -r               restore saved credentials from archive"
-            echo"     -c               delete saved credentials"
+            echo "    -r               restore saved credentials from archive"
+            echo "    -c               delete saved credentials"
             ;;
+        unset )
+            echo "usage: box unset [option]"
+            echo "    -f               unset file links only"
     esac
 }
 
@@ -83,19 +91,21 @@ box_usage()
 {
     if [[ $1 != '' ]]; then
         _box_usage_cmd $1
+        return 0
     fi
 
     echo "Usage: box [-v] [-h] <command> [<args>]"
     echo -e "These are common box command used in various situations: \n"
-    echo "set or init box environment"
+    echo "major box environment"
     echo "   init                initialize box environment"
     echo "   set                 set changes on machine choosen by user"
+    echo "   unset               unset changes on machine choosen by user"
     echo ""
     echo "regularly used command during work (box's utils)"
-    echo "   free                free RAM memory using degree of cleaning"
-    echo "   package             download, install, uninstall packages"
+    echo "   free                free RAM memory from garbage"
+    echo "   pkg                 download, install, uninstall packages"
     echo "   util                util useful for me"
-    echo "   browser             tools for backup, adjust browser's meta data"
+    echo "   brws                tools for backup, adjust browser's meta data"
     echo ""
     echo "Options:"
     echo " -h                    give this help list"
@@ -127,12 +137,51 @@ box_set()
 {
     printf "Set date and time: "
     DATE=$(curl -sI google.com | grep -i date | cut -f 3,4,5,6 -d ' ')
-    printf '\n ' && sudo date --set="$DATE" && echo
+    printf '\n ' && sudo date --set="$DATE -2 hours" && echo
+
+
 
     _set_devs
     _set_passwd
+    _set_daemons
     _set_datalinks
     _set_update_session
+}
+
+
+box_free()
+{
+    if [[ $1 -lt 0 ]]; then
+        echo "Warning: Use only positive numbers instead of '$1'"
+        exit 1
+    fi
+    if [[ $1 -eq 3 ]]; then
+        echo "Warning: Using third degree for freeing memory is depricated"
+        exit 1
+    fi
+    if [[ $1 -gt 3 ]]; then
+        echo "Error: there are only 2 degrees of freeing memory."
+        echo "Warning: Third is depricated"
+        exit 1
+    fi
+
+    sudo sysctl vm.drop_caches=$1
+    echo && free -h
+}
+
+box_packages()
+{
+    echo "Deal with packages"
+    case $1 in
+        download )
+            _package_download $1 ;;
+        backup )
+            _package_backup   $1 ;;
+        cleanup )
+            _package_cleanup  $1 ;;
+        restore )
+            _package_restore  $1 ;;
+    esac
 }
 
 box_utils()
@@ -160,13 +209,13 @@ box_utils()
                 exit
             fi
             ;;
-        halt )
-			# kill user apps before unlink
-			killall chromium sublime_text
-            _debug_reset
-            sleep 8
-            sudo shutdown -h now
-            ;;
+        # halt )
+        #     # kill user apps before unlink
+        #     killall chromium sublime_text
+        #     box_unset
+        #     sleep 8
+        #     sudo shutdown -h now
+        #     ;;
     esac
 }
 
@@ -186,39 +235,21 @@ box_browser()
     echo " $DEST"
 }
 
-box_clean()
+box_unset()
 {
-    echo "Clean unnecessary garbage"
-
-    echo " page cache, dentries and inodes"
-    sudo sysctl vm.drop_caches=$1
-
-    echo " browser metadata"
+    echo "Unset symbolic links"
+    for d in ${BOX_DIRS[@]}; do
+        DEST=${d#"$BOX_HOME/"}
+        test -L $DEST && unlink ~/$DEST
+        echo " ~/$DEST"
+    done
+    for f in ${BOX_FILES[@]}; do
+        DEST=${f#"$BOX_HOME/"}
+        test -L $DEST && unlink ~/$DEST
+        echo " ~/$DEST"
+    done
 }
 
-box_debug()
-{
-    echo "Debug"
-    case $1 in 
-        reset )
-            _debug_reset ;;
-    esac
-}
-
-box_packages()
-{
-    echo "Deal with packages"
-    case $1 in
-        download )
-            _package_download $1 ;;
-        backup )
-            _package_backup   $1 ;;
-        cleanup )
-            _package_cleanup  $1 ;;
-        restore )
-            _package_restore  $1 ;;
-    esac
-}
 
 
 _init_user_prompt()
@@ -311,35 +342,6 @@ _init_save_box_itself()
 }
 
 
-_set_passwd()
-{
-    # set non-default passwd for more security
-    echo "Set new password"
-    echo -e "Warning: default password is used\n"
-}
-
-_set_datalinks()
-{
-    # make symbolic links
-    echo "Make links to files"
-
-    # delete some dirs
-    rm -rf $HOME/.local
-    rm -rf $HOME/Downloads
-
-    for d in ${BOX_DIRS[@]}; do
-        DEST=${d#"$BOX_HOME/"}
-        test -e $HOME/$DEST || ln -s $BOX_HOME/$DEST $HOME/$DEST
-        echo " $DEST"
-    done
-    for f in ${BOX_FILES[@]}; do
-        DEST=${f#"$BOX_HOME/"}
-        test -e $HOME/$DEST || ln -s $BOX_HOME/$DEST $HOME/$DEST
-        echo " $DEST"
-    done
-    echo
-}
-
 _set_devs()
 {
     echo "Set devices parameters"
@@ -361,6 +363,46 @@ _set_devs()
     echo
 }
 
+_set_passwd()
+{
+    # set non-default passwd for more security
+    echo "Set new password"
+    echo -e "Warning: default password is used\n"
+}
+
+_set_daemons()
+{
+    echo "Start deamons: redbutton"
+    ps axu | grep redbutton | grep -v grep
+    if [[ $? -eq 1 ]]; then
+        redbutton &
+    fi
+
+    echo
+}
+
+_set_datalinks()
+{
+    # make symbolic links
+    echo "Make links to files"
+
+    # delete some dirs
+    rm -rf $HOME/.local
+    rm -rf $HOME/Downloads
+
+    for d in ${BOX_DIRS[@]}; do
+        DEST=${d#"$BOX_HOME/"}
+        test -e $HOME/$DEST || ln -s $BOX_HOME/$DEST $HOME/$DEST
+        echo "~/$DEST"
+    done
+    for f in ${BOX_FILES[@]}; do
+        DEST=${f#"$BOX_HOME/"}
+        test -e $HOME/$DEST || ln -s $BOX_HOME/$DEST $HOME/$DEST
+        echo "~/$DEST"
+    done
+    echo
+}
+
 _set_update_session()
 {
     # have to make some checking before update .bashrc
@@ -377,22 +419,6 @@ _set_update_session()
     echo "source $BOX_DIR/bin/box.sh"  >> ~/.bashrc
     sudo cp ~/.bashrc /root
     exec $SHELL
-}
-
-
-_debug_reset()
-{
-    echo "Unset symbolic links"
-    for d in ${BOX_DIRS[@]}; do
-        DEST=${d#"$BOX_HOME/"}
-        test -L $DEST && unlink ~/$DEST
-        echo " ~/$DEST"
-    done
-    for f in ${BOX_FILES[@]}; do
-        DEST=${f#"$BOX_HOME/"}
-        test -L $DEST && unlink ~/$DEST
-        echo " ~/$DEST"
-    done
 }
 
 
@@ -530,92 +556,62 @@ _package_restore()
 
 
 
-
 case $1 in
     init)
         shift 1
         box_init
-    ;;
+        ;;
     set)
         shift 1
         box_set 
-    ;;
+        ;;
+    unset)
+        shift 1
+        box_unset
+        ;;
+
+    free)
+        shift 1
+        box_free $1
+        ;;
     pkg)
         shift 1
         while getopts ":db:c:r:" opt; do
             case ${opt} in
             d)
-                _package_download
-                ;;
+                _package_download ;;
             b)
-                _package_backup $OPTARG
-                ;;
+                _package_backup $OPTARG ;;
             c)
-                _package_cleanup $OPTARG
-                ;;
+                _package_cleanup $OPTARG ;;
             r)
-                _package_restore $OPTARG
-                ;;
+                _package_restore $OPTARG ;;
             esac
         done
         ;;
     util)
         shift 1
-        while getopts ":c:s:h:" opt; do
+        while getopts ":tcsH" opt; do
             case ${opt} in
             c)
-                box_utils $OPTARG
-                ;;
+                box_utils conn ;;
             s)
-                box_utils $OPTARG
-                ;;
-            h)
-                box_utils $OPTARG
-                ;;
+                box_utils send ;;
+            # H)
+            #     box_utils halt ;;
             esac
         done
         ;;
+
     -h)
-        box_usage
+        shift 1
+        box_usage $1
         ;;
     -v)
         echo "box version $VERSION"
         ;;
 esac
 
-
-# Interface
-# while getopts ":isp:d:c:h:b:u:v" opt; do
-#     case ${opt} in
-#         i)
-#             box_init ;;
-#         s)
-#             box_set ;;
-#         c)
-#             box_clean $OPTARG ;;
-#         p)
-#             box_packages $OPTARG ;;
-#         d)
-#             box_debug $OPTARG ;;
-#         h)
-#             box_usage $OPTARG ;;
-#         u)
-#             box_utils $OPTARG ;;
-#         b)
-#             box_browser $OPTARG ;;
-#         v)
-#             echo "box (particle) $VERSION" ;;
-#         :)
-#             if [[ $OPTARG == 'h' ]]; then
-#                 box_usage $OPTARG
-#             else
-#                 echo "Option -$OPTARG requires argument. Use option \`-h' for more information"
-#             fi
-#             ;; 
-#        \?)
-#             echo "Unknown option character \`-$OPTARG'" ;;
-#     esac
-# done
-# if [[ $# -eq 0 ]]; then
-#     box_set
-# fi
+if [[ $ARGC -eq 0 ]]; then
+    box_set
+fi
