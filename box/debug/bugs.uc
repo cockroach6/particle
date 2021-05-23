@@ -24,3 +24,5 @@
 16)+ Write correct and meaningfull README.md
 17)  Package backup does not save all files related to package like files
        /etc directory. And does not resolve symbolic files properly.
+18)  If close terminal with combination Ctrl+Shift+W then all running daemons
+        including `redb` with be terminated.
