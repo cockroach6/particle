@@ -416,6 +416,12 @@ _set_update_session()
     echo "source $BOX_DIR/bin/box.sh"  >> ~/.bashrc
     sudo cp ~/.bashrc /root
 
+    echo -e "\n#FIXME-cockroach: should write daemon script"   >> ~/.bashrc
+    echo "ps aux | grep '.local/bin/redb' | grep 'python3' -q" >> ~/.bashrc
+    echo "if [[ \$? -eq 1 ]]; then"                            >> ~/.bashrc
+    echo "redb &"                                              >> ~/.bashrc
+    echo "fi"                                                  >> ~/.bashrc
+
     PATH=$BOX_PATH:$PATH
     export PATH
     echo
