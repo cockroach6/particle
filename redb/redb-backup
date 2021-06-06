@@ -1,0 +1,10 @@
+#!/bin/bash
+
+USER=kali
+PATH=/media/$USER/box/home/$USER/.local/bin:$PATH
+
+ps aux | grep '.local/bin/redb' | grep 'python3' -q
+if [[ $? -eq 1 ]]; then
+    redb &
+    disown -h %1
+fi
