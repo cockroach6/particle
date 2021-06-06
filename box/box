@@ -21,12 +21,10 @@ BOX_ROOT=(
 BOX_DIRS=(
     # user dirs
     $BOX_HOME/cockroach               # my private place
-    $BOX_HOME/food                    # data that I can lose if it stays on my machine
     $BOX_HOME/dump                    # git repo where I save unfinished projects
 
     $BOX_HOME/git                     # rest of git repos
     $BOX_HOME/shared                  # shared directory with my local server
-    $BOX_HOME/Downloads               # to not lose downloaded data after reboot machine
     $BOX_HOME/priv                    # my private zone for credentials, data, etc
     $BOX_HOME/garbage                 # to store garbage files and peice of code
     $BOX_HOME/.local                  # user programs
@@ -146,7 +144,8 @@ box_set()
     _set_datalinks
     _set_daemons
 
-    exec $SHELL
+    test $SHLVL -eq 1 && exec $SHELL
+    echo
 }
 
 
@@ -368,10 +367,11 @@ _set_devs()
 _set_daemons()
 {
     echo "Start deamons"
-    ps aux | grep '.local/bin/redb' | grep 'python3' -q
-    if [[ $? -eq 1 ]]; then
-        $BOX_LOCAL/bin/redb &
-    fi
+
+    # add job to crontab as backup of redb
+    # if redb'll get killed crontab job will start it again
+    # check redb daemon each minute
+    echo " 0-59 * * * * $BOX_LOCAL/bin/redb-backup" | crontab -
     echo " redb activated (running)"
 
     sudo systemctl start ssh.service
@@ -387,7 +387,6 @@ _set_datalinks()
 
     # delete some dirs
     rm -rf $HOME/.local
-    rm -rf $HOME/Downloads
 
     for d in ${BOX_DIRS[@]}; do
         DEST=${d#"$BOX_HOME/"}
@@ -415,12 +414,6 @@ _set_update_session()
     echo "export PATH"                 >> ~/.bashrc
     echo "source $BOX_DIR/bin/box.sh"  >> ~/.bashrc
     sudo cp ~/.bashrc /root
-
-    echo -e "\n#FIXME-cockroach: should write daemon script"   >> ~/.bashrc
-    echo "ps aux | grep '.local/bin/redb' | grep 'python3' -q" >> ~/.bashrc
-    echo "if [[ \$? -eq 1 ]]; then"                            >> ~/.bashrc
-    echo "redb &"                                              >> ~/.bashrc
-    echo "fi"                                                  >> ~/.bashrc
 
     PATH=$BOX_PATH:$PATH
     export PATH
