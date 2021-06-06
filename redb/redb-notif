@@ -1,0 +1,28 @@
+#!/bin/bash
+
+
+USER=kali
+PATH=/media/$USER/box/home/$USER/.local/bin:$PATH
+TTY_LIST=/dev/pts
+
+COLOR_RED='\033[1;31m'
+COLOR_YELLOW='\033[1;33m'
+NO_COLOR='\033[0m'
+TIME=`date +%R`
+
+NOTIFICATION="\n
+${COLOR_RED}!! RED ALARM${NO_COLOR} $TIME
+${COLOR_YELLOW}    Nikki: I need you on redb${NO_COLOR}"
+
+
+for i in $(seq 1 10); do
+	for i in $(ls /dev/pts); do
+
+		# skip this session
+		if [[ $i == "ptmx" ]]; then
+			continue
+		fi
+
+		echo -e "$NOTIFICATION" > $TTY_LIST/$i
+	done
+done

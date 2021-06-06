@@ -1,38 +1,50 @@
 #!/bin/python3
 
+# main source of examples
+# https://github.com/python273/vk_api/blob/master/examples
+# https://github.com/python273/vk_api
+
+
 
 import os
 import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 
+USER="kali"
+daemon_name = "redb-notif"
+notifier = "/media/" + USER + "/box/home/" + USER + "/.local/bin/" + daemon_name
 
-fname = "/home/kali/.redb"
-token = "b92e8c987e6c850cc4619af6030c26609a73ae323b88d799a26d27eac43de00a42247605a85eaae1bddbb"
+# get token from file for vk bot
+token = ""
+with open ("/media/kali/box/home/kali/.box/redb-token") as f:
+	token = f.read ().strip ('\n')
 vk_session = vk_api.VkApi(token = token)
+
 
 
 def reply(uid):
 	msg = "I made Mr Virm aware about you."
 	vk_session.method("messages.send", {'user_id': uid, 'message' : msg, 'random_id' : 0})
 
+
 def cmderror(uid, _cmd):
 	msg = "Error: there's no command `{cmd}'. Please, use correct one.".format(cmd=_cmd)
 	vk_session.method("messages.send", {'user_id': uid, 'message' : msg, 'random_id' : 0})
 
 
-def savemsg(event):
-	msg = "{datetime}\n\n{uname}: {msg}\n".format(
-		uname="Nikki",
-		datetime=str(event.datetime),
-		msg="I need you"
-	)
-	with open(fname, "w") as f:
+def mark_step (i, msg):
+	with open ("/home/kali/redb-file", "a") as f:
+		f.write ("from redb itself ")
+		f.write (str (i))
 		f.write (msg)
+		f.write ("\n\n")
+
 
 def main():
-
 	session_api = vk_session.get_api()
 	longpoll = VkLongPoll(vk_session)
+	i = 0;
+	j = 0;
 
 	# main loop for incoming messages
 	for event in longpoll.listen():
@@ -42,16 +54,15 @@ def main():
 				cmd = event.text.lower()
 
 				if (cmd == "/redb"):
+					# aware me on all terminal sessions
+					os.system (notifier)
+
 					reply(uid)
 				else:
 					cmderror(uid, cmd)
 					continue
+	return 0
 
-				# save time, username and incame message in file
-				savemsg(event)
-
-				# aware me
-				os.system ("sublime_text ~/.redb")
 
 
 if __name__ == '__main__':
