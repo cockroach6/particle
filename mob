@@ -1,0 +1,43 @@
+#!/bin/bash
+
+USER=kali
+BOX_BASE=/media/$USER/box
+BOX_HOME=$BOX_BASE/home/$USER
+BOX_CONFIG=$BOX_HOME/.box-config
+BOX_LOCAL=/home/$USER/.local
+
+
+mob_usage()
+{
+	echo "./mob <option>"
+	echo "   inst - install all particles to NEW machine"
+	echo "   depl - deploy/update particles on current machine"
+}
+
+mob_install()
+{
+	echo "mob install is not fully implemented yet"
+	# exec scripts/install.sh
+}
+
+mob_deploy()
+{
+	echo "deploy particles"
+
+	echo " update box"
+	cp box/box $BOX_BASE/bin
+	cp box/box.sh $BOX_BASE/bin
+	cp -rf .box-config $BOX_HOME
+
+	echo " update redb"
+	cp redb/redb* $BOX_LOCAL/bin
+}
+
+
+if [[ "$1" == "inst" ]]; then
+	mob_install
+elif [[ "$1" == "depl" ]]; then
+	mob_deploy
+else
+	mob_usage
+fi
