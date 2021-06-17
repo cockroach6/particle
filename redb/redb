@@ -16,7 +16,7 @@ notifier = "/media/" + USER + "/box/home/" + USER + "/.local/bin/" + daemon_name
 
 # get token from file for vk bot
 token = ""
-with open ("/media/kali/box/home/kali/.box/redb-token") as f:
+with open ("/media/kali/box/home/kali/.box-creden/redb-token") as f:
 	token = f.read ().strip ('\n')
 vk_session = vk_api.VkApi(token = token)
 

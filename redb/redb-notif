@@ -1,28 +1,43 @@
 #!/bin/bash
 
 
-USER=kali
-PATH=/media/$USER/box/home/$USER/.local/bin:$PATH
-TTY_LIST=/dev/pts
-
-COLOR_RED='\033[1;31m'
-COLOR_YELLOW='\033[1;33m'
-NO_COLOR='\033[0m'
-TIME=`date +%R`
-
-NOTIFICATION="\n
-${COLOR_RED}!! RED ALARM${NO_COLOR} $TIME
-${COLOR_YELLOW}    Nikki: I need you on redb${NO_COLOR}"
+TIME=$(date +%R)
+NOTIF_CLI="\n
+	${COLOR_RED}!! RED ALARM${NO_COLOR} $TIME
+	${COLOR_YELLOW}    Nikki: I need you on redb${NO_COLOR}"
+NOTIF_GUI=">------------------------------------------------<
+	!! RED ALARM $TIME
+	    Nikki: I need you on redb"
 
 
-for i in $(seq 1 10); do
-	for i in $(ls /dev/pts); do
+function notifier_cli()
+{
+	TTY_LIST=/dev/pts
+	COLOR_RED='\033[1;31m'
+	COLOR_YELLOW='\033[1;33m'
+	NO_COLOR='\033[0m'
 
-		# skip this session
-		if [[ $i == "ptmx" ]]; then
-			continue
-		fi
+	for i in $(seq 1 10); do
+		for i in $(ls $TTY_LIST); do
 
-		echo -e "$NOTIFICATION" > $TTY_LIST/$i
+			# skip this session
+			if [[ $i == "ptmx" ]]; then
+				continue
+			fi
+
+			echo -e "$NOTIF_CLI" > $TTY_LIST/$i
+		done
 	done
-done
+}
+
+function notifier_gui()
+{
+	cd Downloads
+	export DISPLAY=:0
+	for (( i=0; i < 4; i=i+1 )); do
+		notify-send -u critical  "$NOTIF_GUI"
+	done
+}
+
+
+notifier_gui
