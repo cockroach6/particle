@@ -10,6 +10,7 @@ BOX_HOME=$BOX_DIR/home/$USER
 BOX_BRW_DIR=$BOX_DIR/home/.config/chromium
 BOX_LOCAL=$BOX_HOME/.local
 BOX_PATH=$BOX_DIR/bin:$BOX_LOCAL/bin
+BOX_CONFIG=$BOX_HOME/.box-config
 VERSION=2.0
 
 BOX_ROOT=(
@@ -34,7 +35,6 @@ BOX_DIRS=(
     $BOX_HOME/.anydesk
 )
 BOX_FILES=(
-    $BOX_HOME/.box-credentials  # config file for my box program
     $BOX_HOME/.git-credentials
     $BOX_HOME/.gitconfig
     $BOX_HOME/.wreck            # config file for my util program
@@ -368,14 +368,14 @@ _set_daemons()
 {
     echo "Start deamons"
 
-    # add job to crontab as backup of redb
-    # if redb'll get killed crontab job will start it again
-    # check redb daemon each minute
-    echo " 0-59 * * * * $BOX_LOCAL/bin/redb-backup" | crontab -
+    echo " box's crontab activated"
+    crontab $BOX_CONFIG/box_crontab
+
+    # redb gets activated by crontab
     echo " redb activated (running)"
 
-    sudo systemctl start ssh.service
     echo " ssh activated (running)"
+    sudo systemctl start ssh.service
 
     echo
 }
