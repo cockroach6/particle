@@ -24,6 +24,7 @@ BOX_DIRS=(
     $BOX_HOME/cockroach               # my private place
     $BOX_HOME/dump                    # git repo where I save unfinished projects
 
+    $BOX_HOME/xunison                 # code and data for my current job
     $BOX_HOME/git                     # rest of git repos
     $BOX_HOME/shared                  # shared directory with my local server
     $BOX_HOME/priv                    # my private zone for credentials, data, etc
@@ -37,7 +38,7 @@ BOX_DIRS=(
 BOX_FILES=(
     $BOX_HOME/.git-credentials
     $BOX_HOME/.gitconfig
-    $BOX_HOME/.wreck            # config file for my util program
+    $BOX_HOME/.wreck
 )
 
 ARGC=$#
@@ -134,8 +135,6 @@ box_init()
 
 box_set()
 {
-    _set_update_session
-
     printf "Set date and time: "
     DATE=$(curl -sI google.com | grep -i date | cut -f 3,4,5,6 -d ' ')
     printf '\n ' && sudo date --set="$DATE -2 hours" && echo
@@ -144,8 +143,7 @@ box_set()
     _set_datalinks
     _set_daemons
 
-    test $SHLVL -eq 1 && exec $SHELL
-    echo
+    _set_update_session
 }
 
 
@@ -403,12 +401,11 @@ _set_datalinks()
 
 _set_update_session()
 {
-    # have to make some checking before update .bashrc
-    # and system at all (deamons, .configs, etc)
     echo "Session updated"
     if [[ $(grep  "# box part" ~/.bashrc) != '' ]]; then
         return ;
     fi
+
     echo -e "\n# box part"             >> ~/.bashrc
     echo "PATH=$BOX_PATH:\$PATH"       >> ~/.bashrc
     echo "export PATH"                 >> ~/.bashrc
@@ -417,6 +414,8 @@ _set_update_session()
 
     PATH=$BOX_PATH:$PATH
     export PATH
+
+    test $SHLVL -eq 2 && exec $SHELL
     echo
 }
 
