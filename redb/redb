@@ -11,13 +11,6 @@ import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 
 
-# get token from file for vk bot
-with open ("/media/kali/box/home/kali/.config/box/redb_token") as f:
-	token = f.read ().strip ('\n')
-vk_session = vk_api.VkApi(token = token)
-
-
-
 def reply(uid):
 	msg = "I made Mr Virm aware about you."
 	vk_session.method("messages.send", {'user_id': uid, 'message' : msg, 'random_id' : 0})
@@ -62,4 +55,8 @@ def main():
 
 
 if __name__ == '__main__':
+	# get token from file for vk bot
+	with open ("/media/kali/box/home/kali/.config/box/redb_token") as f:
+		token = f.read ().strip ('\n')
+	vk_session = vk_api.VkApi(token = token)
 	main()
