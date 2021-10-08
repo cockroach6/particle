@@ -10,9 +10,6 @@ import os
 import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 
-USER="kali"
-daemon_name = "redb-notif"
-notifier = "/media/" + USER + "/box/home/" + USER + "/.local/bin/" + daemon_name
 
 # get token from file for vk bot
 with open ("/media/kali/box/home/kali/.config/box/redb_token") as f:
@@ -54,7 +51,7 @@ def main():
 
 				if (cmd == "/redb"):
 					# aware me on all terminal sessions
-					os.system (notifier)
+					os.system ("redb-notif")
 
 					reply(uid)
 				else:
