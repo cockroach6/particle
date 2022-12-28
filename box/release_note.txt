@@ -1,0 +1,1 @@
+1) New releases of kali use zsh. Place updated .zshrc to /media/kali/box/bin

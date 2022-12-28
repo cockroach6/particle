@@ -21,7 +21,7 @@ BOX_ROOT=(
 )
 BOX_DIRS=(
     # user dirs
-    $BOX_HOME/cockroach               # my private place
+    $BOX_HOME/roach                   # my private place
     $BOX_HOME/dump                    # git repo where I save unfinished projects
 
     $BOX_HOME/xunison                 # code and data for my current job
@@ -401,6 +401,14 @@ _set_datalinks()
 
 _set_update_session()
 {
+    # damn bad fix
+    # Explanation: new releases of kali use zsh. It is
+    # the easiest way to fix it.
+    cp $BOX_DIR/bin/.zshrc ~/
+    return ;
+
+
+
     echo "Session updated"
     if [[ $(grep  "# box part" ~/.bashrc) != '' ]]; then
         return ;
