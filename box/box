@@ -49,11 +49,11 @@ _box_usage_cmd()
 {
     CMD=$1
     case $CMD in
-        init )
+        init)
             echo "usage: box init"
             echo ""
             ;;
-        set )
+        set)
             echo "usage: box set"
             echo ""
             ;;
@@ -80,7 +80,7 @@ _box_usage_cmd()
             echo "    -r               restore saved credentials from archive"
             echo "    -c               delete saved credentials"
             ;;
-        unset )
+        unset)
             echo "usage: box unset [option]"
             echo "    -f               unset file links only"
     esac
@@ -209,7 +209,9 @@ box_utils()
             ;;
         halt )
             # kill user apps before unlink
+            echo "shutdown PC"
             killall chromium sublime_text
+            sleep 4
             box_unset
             sleep 8
             echo "shutdown local server"
@@ -259,18 +261,18 @@ _init_user_prompt()
     test -z $_DEV || DEV=$_DEV && test -b $DEV # && echo "OK $DEV" || echo "ERR $DEV"
 
     if [[ $? -eq 1 ]]; then
-        echo -e "  Error: no such disk device \`$DEV'"
+        echo -e "  Error: no such disk device '$DEV'"
         return 1
     fi
 
-    printf "  Do you want to format \`box\` disk partition? [y/N] " && read anw
+    printf "  Do you want to format 'box' disk partition? [y/N] " && read anw
     if [[ $anw != 'yes' ]]; then
         echo "Abort" && return 1
     fi
 
     if [[ -d $BOX_DIR ]]; then
-        echo "  Warning: \`box\` partitioin exists already."
-        printf "  Do you want to format \`box\` partitioin anyway? [y/N] " && read anw
+        echo "  Warning: 'box' partitioin exists already."
+        printf "  Do you want to format 'box' partitioin anyway? [y/N] " && read anw
         if [[ $anw != 'yes' ]]; then
             echo "Abort"
             return 1
@@ -401,30 +403,32 @@ _set_datalinks()
 
 _set_update_session()
 {
+    echo "Session updated"
+
     # damn bad fix
     # Explanation: new releases of kali use zsh. It is
     # the easiest way to fix it.
     cp $BOX_DIR/bin/.zshrc ~/
-    return ;
+    # return ;
 
 
 
-    echo "Session updated"
-    if [[ $(grep  "# box part" ~/.bashrc) != '' ]]; then
-        return ;
-    fi
+    # if [[ $(grep  "# box part" ~/.bashrc) != '' ]]; then
+    #     return ;
+    # fi
+    # echo -e "\n# box part"             >> ~/.bashrc
+    # echo "PATH=$BOX_PATH:\$PATH"       >> ~/.bashrc
+    # echo "export PATH"                 >> ~/.bashrc
+    # echo "source $BOX_DIR/bin/box.sh"  >> ~/.bashrc
+    # sudo cp ~/.bashrc /root
 
-    echo -e "\n# box part"             >> ~/.bashrc
-    echo "PATH=$BOX_PATH:\$PATH"       >> ~/.bashrc
-    echo "export PATH"                 >> ~/.bashrc
-    echo "source $BOX_DIR/bin/box.sh"  >> ~/.bashrc
-    sudo cp ~/.bashrc /root
 
     PATH=$BOX_PATH:$PATH
-    export PATH
+    SHELL="bash"
+    export PATH SHELL
 
+    echo " default shell: $SHELL"
     test $SHLVL -eq 2 && exec $SHELL
-    echo
 }
 
 
@@ -559,8 +563,12 @@ _package_restore()
 }
 
 
+if [[ $ARGC -eq 0 ]]; then
+    box_set
+    exit 0
+fi
 
-case $1 in
+case "$1" in
     init)
         shift 1
         box_init
@@ -601,8 +609,8 @@ case $1 in
                 box_utils conn ;;
             s)
                 box_utils send ;;
-            # H)
-            #     box_utils halt ;;
+            H)
+                box_utils halt ;;
             esac
         done
         ;;
@@ -615,7 +623,3 @@ case $1 in
         echo "box version $VERSION"
         ;;
 esac
-
-if [[ $ARGC -eq 0 ]]; then
-    box_set
-fi
