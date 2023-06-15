@@ -30,8 +30,8 @@ re: clean all
 
 install:
 	cp $(PRJ) wd.sh $(WDPATH)
-	echo "PATH=~/.local/bin:$$"PATH "&& export PATH" >> ~/.bashrc
-	echo "source $(WDPATH)/wd.sh" >> ~/.bashrc
+	echo "PATH=~/.local/bin:$$"PATH "&& export PATH" >> ~/.zshrc
+	echo "source $(WDPATH)/wd.sh" >> ~/.zshrc
 
 uninstall:
 	# delete wd function from .bashrc too
