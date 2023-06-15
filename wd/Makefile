@@ -5,7 +5,7 @@ CFLAGS := -I inc -Wall
 WDPATH := ~/.local/bin
 PRJ    := _wd
 
-all: $(PRJ)
+all: init $(PRJ)
 
 
 init:
