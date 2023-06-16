@@ -19,11 +19,11 @@ const char *usage =
 	"Usage:\n"
 	"  wd [option] [jump point]\n"
 	"Options:\n"
-	"  -a                         add new directory name point\n"
-	"  -c                         clear all directory name point\n"
-	"  -l                         list directory name point\n"
-	"  -h                         display this help\n"
-	"  -r                         remove directory name point\n";
+	"  -a                         Add new directory name point\n"
+	"  -d                         Delte directory name point\n"
+	"  -c                         Clear all directory name point\n"
+	"  -l                         List directory name point\n"
+	"  -h                         Display this help\n";
 
 
 static int wd_error(char *msg) {
@@ -63,7 +63,7 @@ struct bucket *wd_init(void) {
 	}
 
 	struct bucket *bucket = malloc(sizeof(struct bucket));
-	if (bucket == NULL) 
+	if (bucket == NULL)
 		wd_error("allocate bucket memory");
 
 	char *line = malloc(SIZE_PNT);
@@ -104,7 +104,7 @@ int wd_add(struct bucket *bucket, char *name) {
 	char dirname[SIZE_DIR];
 	getcwd(dirname, SIZE_DIR);
 
-	if (bucket->avail >= bucket->size) 
+	if (bucket->avail >= bucket->size)
 		wd_error("number of space points is full");
 
 	if (wd_chkdup(bucket, name) != 0) {

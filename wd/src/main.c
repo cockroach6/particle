@@ -5,7 +5,7 @@
 
 #include "engine.h"
 
-/* wd - warp dirnameectory 
+/* wd - warp dirnameectory
    It's wrapper for `cd` command which's more suitable if you deal with long and
    friquently used paths.
 */
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
 	opterr = 0;
 
-	while ((c = getopt (argc, argv, "a:clhvr:")) != -1) {
+	while ((c = getopt (argc, argv, "a:clhvd:")) != -1) {
 		switch (c) {
 		case 'c':
 			flags[0] = 1;
@@ -47,11 +47,11 @@ int main(int argc, char **argv)
 		case 'a':
 			values[0] = optarg;
 			break;
-		case 'r':
+		case 'd':
 			values[1] = optarg;
 			break;
 		case '?':
-			if (optopt == 'a' || optopt == 'r')
+			if (optopt == 'a' || optopt == 'd')
 				fprintf(stderr, "Option -%c requires argument.\n", optopt);
 			else if (isprint(optopt))
 				fprintf (stderr, "Unknown option `-%c'.\n", optopt);
@@ -88,8 +88,8 @@ int main(int argc, char **argv)
 	else if (flags[2]) wd_version();
 	else if (flags[3]) wd_list();
 
-	/* 
-		Because we won't handle their output as 
+	/*
+		Because we won't handle their output as
 		dirnameectory path. So return 1 instead of 0.
 	*/
 	return 1;
